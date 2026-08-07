@@ -336,7 +336,23 @@
                         <div class="sval" id="rDate">—</div>
                     </div>
                     <div class="sc">
-                        <div class="slbl"><i class="bi bi-tag"></i> Montant HT (DH)</div>
+                        <div class="slbl"><i class="bi bi-geo-alt"></i> Adresse facturation</div>
+                        <div class="sval" id="rBillingAddress">—</div>
+                    </div>
+                    <div class="sc">
+                        <div class="slbl"><i class="bi bi-hourglass-split"></i> Date échéance</div>
+                        <div class="sval" id="rDueDate">—</div>
+                    </div>
+                    <div class="sc">
+                        <div class="slbl"><i class="bi bi-patch-check"></i> Statut</div>
+                        <div class="sval" id="rStatus">—</div>
+                    </div>
+                    <div class="sc">
+                        <div class="slbl"><i class="bi bi-currency-exchange"></i> Devise</div>
+                        <div class="sval" id="rCurrency">—</div>
+                    </div>
+                    <div class="sc">
+                        <div class="slbl"><i class="bi bi-tag"></i> Montant HT (dt)</div>
                         <div class="sval" id="rHt">—</div>
                     </div>
                     <div class="sc">
@@ -344,8 +360,26 @@
                         <div class="sval" id="rTva">—</div>
                     </div>
                     <div class="sc" style="grid-column: span 2; background: rgba(16,185,129,0.05);">
-                        <div class="slbl"><i class="bi bi-cash-coin"></i> Montant TTC (DH)</div>
+                        <div class="slbl"><i class="bi bi-cash-coin"></i> Montant TTC (DT)</div>
                         <div class="sval ok" id="rTotal" style="font-size: 1.5rem;">—</div>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <h4 style="margin-bottom:.8rem;">Lignes de produits</h4>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Description</th>
+                                    <th>Quantité</th>
+                                    <th>Prix unitaire</th>
+                                    <th>Prix total</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rLineItems">
+                                <tr><td colspan="4" class="text-center">Pas de lignes détectées</td></tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
 
@@ -402,6 +436,17 @@
 
     function handleFileSelect(e) { const f = e.target.files[0]; if (f) loadFile(f); }
 
+    // Drag & Drop handlers
+    const dropZone = document.getElementById('dropZone');
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag'); });
+    dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('drag'); });
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('drag');
+        const f = e.dataTransfer.files[0];
+        if (f) { document.getElementById('fileInput').files = e.dataTransfer.files; loadFile(f); }
+    });
+
     function loadFile(f) {
         S.file = f;
         document.getElementById('fileName').textContent = f.name;
@@ -416,18 +461,27 @@
         }
     }
 
+    function updateProgress(pct, txt) {
+        document.getElementById('pfill').style.width = pct + '%';
+        document.getElementById('pstatus').textContent = txt;
+    }
+
     async function analyze() {
         if (!S.file || S.isAnalyzing) return;
         S.isAnalyzing = true;
         const ab = document.getElementById('analyzeBtn');
-        ab.disabled = true; ab.textContent = ui('analyzingBtn');
+        ab.disabled = true;
+        ab.innerHTML = '<i class="bi bi-hourglass-split"></i> ' + ui('analyzingBtn');
         document.getElementById('progArea').classList.add('on');
+        updateProgress(10, ui('pgInit'));
 
         try {
             const formData = new FormData();
             formData.append('file', S.file);
 
+            updateProgress(30, ui('pgPdf'));
             const response = await fetch('/upload', { method: 'POST', body: formData });
+            updateProgress(70, ui('pgAnalyze'));
             const res = await response.json();
 
             if (!response.ok) throw new Error(res.error || "Erreur d'analyse");
@@ -438,15 +492,17 @@
             S.currentData.ai_active = res.ai_active;
             S.currentData.filename = S.file.name;
 
+            updateProgress(100, ui('pgDone'));
             displayResults(S.currentData);
             saveHistory(S.currentData);
             showToast('✅ ' + ui('tDone'));
         } catch (e) {
             showToast('❌ ' + e.message);
         } finally {
-            ab.disabled = false; ab.textContent = 'Analyser la facture';
+            ab.disabled = false;
+            ab.innerHTML = '<i class="bi bi-search"></i> Analyser la facture';
             S.isAnalyzing = false;
-            document.getElementById('progArea').classList.remove('on');
+            setTimeout(() => document.getElementById('progArea').classList.remove('on'), 800);
         }
     }
 
@@ -458,32 +514,59 @@
         document.getElementById('rIce').textContent = d.ice || 'N/A';
         document.getElementById('rNum').textContent = d.invoice_number || 'N/A';
         document.getElementById('rDate').textContent = d.invoice_date || 'N/A';
-        document.getElementById('rHt').textContent = d.ht_amount ? d.ht_amount.toFixed(2) + ' DH' : 'N/A';
-        document.getElementById('rTva').textContent = d.vat_rate ? d.vat_rate + ' %' : (d.vat_amount ? d.vat_amount.toFixed(2) + ' DH' : 'N/A');
-        document.getElementById('rTotal').textContent = d.total_amount ? d.total_amount.toFixed(2) + ' DH' : 'N/A';
+        document.getElementById('rBillingAddress').textContent = d.billing_address || 'N/A';
+        document.getElementById('rDueDate').textContent = d.due_date || 'N/A';
+        document.getElementById('rStatus').textContent = d.invoice_status || 'N/A';
+        document.getElementById('rCurrency').textContent = d.currency || 'N/A';
+        document.getElementById('rHt').textContent = d.ht_amount ? d.ht_amount.toFixed(2) + ' DT' : 'N/A';
+        document.getElementById('rTva').textContent = d.vat_rate ? d.vat_rate + ' %' : (d.vat_amount ? d.vat_amount.toFixed(2) + ' DT' : 'N/A');
+        document.getElementById('rTotal').textContent = d.total_amount ? d.total_amount.toFixed(2) + ' DT' : 'N/A';
         document.getElementById('rText').textContent = d.raw || '';
+
+        const lineItems = document.getElementById('rLineItems');
+        lineItems.innerHTML = '';
+        if (Array.isArray(d.line_items) && d.line_items.length > 0) {
+            d.line_items.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${item.description || 'N/A'}</td>
+                    <td>${item.quantity != null ? item.quantity : 'N/A'}</td>
+                    <td>${item.unit_price != null ? item.unit_price.toFixed ? item.unit_price.toFixed(2) : item.unit_price : 'N/A'}</td>
+                    <td>${item.total_price != null ? item.total_price.toFixed ? item.total_price.toFixed(2) : item.total_price : 'N/A'}</td>
+                `;
+                lineItems.appendChild(tr);
+            });
+        } else {
+            const tr = document.createElement('tr');
+            tr.innerHTML = '<td colspan="4" class="text-center">Pas de lignes détectées</td>';
+            lineItems.appendChild(tr);
+        }
 
         const vs = document.getElementById('vStatus');
         if (d.validations) {
-            vs.className = 'vstatus on ' + (d.validations.math_valid ? 'ok' : 'err');
-            vs.innerHTML = d.validations.math_valid ? '✅ Calculs vérifiés' : '⚠️ ' + d.validations.errors.join(', ');
+            let msgs = [];
+            if (!d.validations.ice_valid) msgs.push('⚠️ ICE invalide');
+            if (!d.validations.math_valid) msgs = msgs.concat(d.validations.errors);
+            if (msgs.length === 0) msgs.push('✅ Calculs vérifiés');
+            vs.className = 'vstatus on ' + (d.validations.math_valid && d.validations.ice_valid ? 'ok' : 'err');
+            vs.innerHTML = msgs.join('<br>');
         }
     }
 
     function saveHistory(d) {
         S.history.unshift(d);
         if (S.history.length > 50) S.history.pop();
-        localStorage.setItem('fs-history', JSON.stringify(S.history));
     }
 
     function clearAll() {
-        S.file = null; S.currentData = null;
         document.getElementById('fileInput').value = '';
         document.getElementById('fileInfo').classList.remove('on');
         document.getElementById('prevBox').classList.remove('on');
+        document.getElementById('prevImg').src = '';
         document.getElementById('analyzeBtn').disabled = true;
         document.getElementById('rempty').style.display = 'block';
         document.getElementById('rgrid').style.display = 'none';
+        document.getElementById('vStatus').className = 'vstatus';
     }
 
     function showToast(msg) {
@@ -495,37 +578,23 @@
 
     function speakResults() {
         if (!S.currentData) { showToast('❌ ' + ui('tNoData')); return; }
-        
+        showToast('🔊 ' + ui('tReading'));
+
         const d = S.currentData;
         const textToSpeech = `Facture de ${d.supplier || 'fournisseur inconnu'}. Montant total de ${d.total_amount || 0} dirhams. Date de facture: ${d.invoice_date || 'inconnue'}.`;
-        
-        showToast('🔊 Préparation de la lecture...');
 
         fetch('/voice/synthesize', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ text: textToSpeech })
         })
-            .then(res => {
-                if (!res.ok) throw new Error("Erreur serveur vocale");
-                return res.json();
-            })
+            .then(res => res.json())
             .then(data => {
                 if (data.audio) {
-                    showToast('🔊 Lecture vocale (' + (data.lang === 'ar' ? 'Arabe' : 'Français') + ')...');
                     const audio = new Audio("data:audio/mp3;base64," + data.audio);
-                    audio.play().catch(e => {
-                        console.error("Autoplay blocked:", e);
-                        showToast('⚠️ Cliquez n\'importe où pour autoriser le son.');
-                    });
-                } else { 
-                    showToast('❌ Erreur de synthèse vocale'); 
-                }
-            })
-            .catch(err => {
-                console.error(err);
-                showToast('❌ Impossible de charger la voix. Vérifiez votre connexion.');
-            });
+                    audio.play();
+                } else { showToast('❌ Erreur de synthèse vocale'); }
+            }).catch(() => showToast('❌ Erreur de réseau vocale'));
     }
 
     function exportCSV() {
@@ -535,7 +604,7 @@
         // Ordre chronologique (La plus ancienne = N° 1)
         const exportData = [...history].reverse();
 
-        let csvContent = "\uFEFFN°;N° Facture;Date;Fournisseur;ICE;TVA (DH);Montant HT;Total TTC (DH);Fichier source\n";
+        let csvContent = "\uFEFFN°;N° Facture;Date;Fournisseur;ICE;TVA (DT);Montant HT;Total TTC (DT);Fichier source\n";
         exportData.forEach((d, idx) => {
             csvContent += `${idx + 1};${d.invoice_number || ''};${d.invoice_date || ''};${d.supplier || ''};${d.ice || ''};${d.vat_amount || 0};${d.ht_amount || 0};${d.total_amount || 0};${d.filename || ''}\n`;
         });

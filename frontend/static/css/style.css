@@ -450,3 +450,8 @@ footer {
     border-radius: 12px;
     font-size: 0.9rem;
 }
+
+/* Utility Classes */
+.w-100 {
+    width: 100%;
+}

@@ -9,7 +9,7 @@
             <div class="card-body p-4">
                 <h1 class="text-center mb-4">FactuScan</h1>
                 <p class="text-center text-muted mb-4">
-                    Analyse intelligente des factures marocaines avec OCR et IA
+                    Analyse intelligente des factures tunisiennes avec OCR et IA
                 </p>
                 
                 <div class="upload-area p-4 border border-dashed rounded text-center" id="upload-area">
@@ -35,11 +35,41 @@
                                     <p><strong>Numéro de facture:</strong> <span id="invoice-number">-</span></p>
                                     <p><strong>Date:</strong> <span id="invoice-date">-</span></p>
                                     <p><strong>Fournisseur:</strong> <span id="supplier">-</span></p>
+                                    <p><strong>Adresse de facturation:</strong> <span id="billing-address">-</span></p>
                                 </div>
                                 <div class="col-md-6">
                                     <p><strong>ICE:</strong> <span id="ice">-</span></p>
-                                    <p><strong>Montant TVA:</strong> <span id="vat-amount">-</span> DH</p>
-                                    <p><strong>Montant total:</strong> <span id="total-amount">-</span> DH</p>
+                                    <p><strong>Date d'échéance:</strong> <span id="due-date">-</span></p>
+                                    <p><strong>Statut:</strong> <span id="invoice-status">-</span></p>
+                                    <p><strong>Devise:</strong> <span id="currency">-</span></p>
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-md-6">
+                                    <p><strong>Montant HT:</strong> <span id="ht-amount">-</span> DT</p>
+                                    <p><strong>Montant TVA:</strong> <span id="vat-amount">-</span> DT</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>Taux TVA:</strong> <span id="vat-rate">-</span></p>
+                                    <p><strong>Montant total:</strong> <span id="total-amount">-</span> DT</p>
+                                </div>
+                            </div>
+                            <div class="mt-4">
+                                <h6>Lignes de produits</h6>
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-bordered">
+                                        <thead>
+                                            <tr>
+                                                <th>Description</th>
+                                                <th>Quantité</th>
+                                                <th>Prix unitaire</th>
+                                                <th>Prix total</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="line-items-body">
+                                            <tr><td colspan="4" class="text-center">Pas de lignes détectées</td></tr>
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
                             <div class="mt-3">
@@ -182,18 +212,41 @@ document.addEventListener('DOMContentLoaded', function() {
     // Display invoice data
     function displayInvoiceData(data) {
         currentInvoiceId = data.id;
-        
-        // Update UI with extracted data
-        document.getElementById('invoice-number').textContent = data.extracted_data.invoice_number || '-';
-        document.getElementById('invoice-date').textContent = data.extracted_data.invoice_date || '-';
-        document.getElementById('supplier').textContent = data.extracted_data.supplier || '-';
-        document.getElementById('ice').textContent = data.extracted_data.ice || '-';
-        document.getElementById('vat-amount').textContent = data.extracted_data.vat_amount || '-';
-        document.getElementById('total-amount').textContent = data.extracted_data.total_amount || '-';
-        
-        // Show result
-        uploadProgress.style.display = 'none';
-        uploadResult.style.display = 'block';
+            const extracted = data.extracted_data || {};
+
+            // Update UI with extracted data
+            document.getElementById('invoice-number').textContent = extracted.invoice_number || '-';
+            document.getElementById('invoice-date').textContent = extracted.invoice_date || '-';
+            document.getElementById('supplier').textContent = extracted.supplier || '-';
+            document.getElementById('ice').textContent = extracted.ice || '-';
+            document.getElementById('billing-address').textContent = extracted.billing_address || '-';
+            document.getElementById('due-date').textContent = extracted.due_date || '-';
+            document.getElementById('invoice-status').textContent = extracted.invoice_status || '-';
+            document.getElementById('currency').textContent = extracted.currency || '-';
+            document.getElementById('ht-amount').textContent = extracted.ht_amount != null ? extracted.ht_amount : '-';
+            document.getElementById('vat-amount').textContent = extracted.vat_amount != null ? extracted.vat_amount : '-';
+            document.getElementById('vat-rate').textContent = extracted.vat_rate != null ? extracted.vat_rate + ' %' : '-';
+            document.getElementById('total-amount').textContent = extracted.total_amount != null ? extracted.total_amount : '-';
+
+            const lineItemsBody = document.getElementById('line-items-body');
+            lineItemsBody.innerHTML = '';
+            if (Array.isArray(extracted.line_items) && extracted.line_items.length > 0) {
+                extracted.line_items.forEach(item => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${item.description || '-'}</td>
+                        <td>${item.quantity != null ? item.quantity : '-'}</td>
+                        <td>${item.unit_price != null ? item.unit_price : '-'}</td>
+                        <td>${item.total_price != null ? item.total_price : '-'}</td>
+                    `;
+                    lineItemsBody.appendChild(tr);
+                });
+            } else {
+                const tr = document.createElement('tr');
+                tr.innerHTML = '<td colspan="4" class="text-center">Pas de lignes détectées</td>';
+                lineItemsBody.appendChild(tr);
+            }
+
     }
     
     // Edit button click

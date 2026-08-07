@@ -1,0 +1,990 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard — FactuScan{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/static/adminlte/css/adminlte.min.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/apexcharts@3.37.1/dist/apexcharts.css" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jsvectormap@1.5.3/dist/css/jsvectormap.min.css" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/overlayscrollbars@2.11.0/styles/overlayscrollbars.min.css" crossorigin="anonymous" />
+<style>
+  .app-wrapper { min-height: 100vh; }
+  .brand-link .brand-text { font-weight: 600; }
+  .sidebar-menu .nav-link.active {
+    background: var(--grad, linear-gradient(90deg, #6366f1, #a855f7)) !important;
+    color: #fff !important;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
+  }
+  .app-header .nav-link.active {
+    color: var(--acc, #6366f1) !important;
+    font-weight: 700;
+  }
+  #revenue-chart, #sales-chart { height: 300px; }
+  #world-map { height: 300px; }
+
+#pie-chart { 
+  min-height: 200px;
+  min-width: 400px; }
+
+  .direct-chat-messages {
+    height: 350px;
+  }
+
+  .table-avatar {
+    width: 35px; height: 35px; object-fit: cover; border: 1px solid var(--border);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="app-wrapper layout-fixed sidebar-expand-lg bg-body-tertiary">
+  <!-- Header -->
+  <nav class="app-header navbar navbar-expand bg-body">
+    <div class="container-fluid">
+      <ul class="navbar-nav">
+        <li class="nav-item">
+          <a class="nav-link" data-lte-toggle="sidebar" href="#" role="button"><i class="bi bi-list"></i></a>
+        </li>
+        <li class="nav-item d-none d-md-block">
+          <a href="/" class="nav-link {% if request.path == '/' %}active{% endif %}">Accueil</a>
+        </li>
+        <li class="nav-item d-none d-md-block">
+          <a href="/contact" class="nav-link {% if request.path == '/contact' %}active{% endif %}">Contact</a>
+        </li>
+      </ul>
+      <ul class="navbar-nav ms-auto">
+        <!-- Messages Dropdown -->
+        <li class="nav-item dropdown">
+          <a class="nav-link" data-bs-toggle="dropdown" href="#">
+            <i class="bi bi-chat-text"></i>
+            <span class="navbar-badge badge text-bg-danger" id="msg-badge">0</span>
+          </a>
+          <div class="dropdown-menu dropdown-menu-lg dropdown-menu-end">
+            <span class="dropdown-item dropdown-header" id="msg-dropdown-header">0 Messages Récents</span>
+            <div class="dropdown-divider"></div>
+            <div id="recent-invoices-dropdown"></div>
+            <div class="dropdown-divider"></div>
+            <a href="/admin/messages" class="dropdown-item dropdown-footer">Voir Tous les Messages</a>
+          </div>
+        </li>
+        <!-- Notifications Dropdown -->
+        <li class="nav-item dropdown">
+          <a class="nav-link" data-bs-toggle="dropdown" href="#">
+            <i class="bi bi-bell-fill"></i>
+            <span class="navbar-badge badge text-bg-warning" id="notif-badge">0</span>
+          </a>
+          <div class="dropdown-menu dropdown-menu-lg dropdown-menu-end">
+            <span class="dropdown-item dropdown-header" id="notif-header">0 Notifications</span>
+            <div class="dropdown-divider"></div>
+            <a href="#" class="dropdown-item">
+              <i class="bi bi-file-earmark-fill me-2"></i> <span id="notif-new-invoices">0</span> nouvelles factures
+              <span class="float-end text-secondary fs-7">24h</span>
+            </a>
+            <div class="dropdown-divider"></div>
+            <a href="#" class="dropdown-item">
+              <i class="bi bi-people-fill me-2"></i> <span id="notif-new-users">0</span> nouveaux utilisateurs
+              <span class="float-end text-secondary fs-7">24h</span>
+            </a>
+            <div class="dropdown-divider"></div>
+            <a href="/admin/dashboard" class="dropdown-item dropdown-footer">Voir Tout</a>
+          </div>
+        </li>
+        <!-- Fullscreen -->
+        <li class="nav-item">
+          <a class="nav-link" href="#" data-lte-toggle="fullscreen">
+            <i data-lte-icon="maximize" class="bi bi-arrows-fullscreen"></i>
+            <i data-lte-icon="minimize" class="bi bi-fullscreen-exit" style="display: none"></i>
+          </a>
+        </li>
+        <!-- User Menu -->
+        <li class="nav-item dropdown user-menu">
+          <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">
+            <img src="/static/adminlte/img/user2-160x160.jpg" class="user-image rounded-circle shadow" alt="User" />
+            <span class="d-none d-md-inline">{{ current_user.username }}</span>
+          </a>
+          <ul class="dropdown-menu dropdown-menu-lg dropdown-menu-end">
+            <li class="user-header text-bg-primary">
+              <img src="/static/adminlte/img/user2-160x160.jpg" class="rounded-circle shadow" alt="User" />
+              <p>{{ current_user.username }} — Administrateur<small>Plan : {{ current_user.subscription_type }}</small></p>
+            </li>
+            <li class="user-body">
+              <div class="row">
+                <div class="col-4 text-center"><a href="/dashboard" id="user-stat-invoices">0</a><div class="small">Factures</div></div>
+                <div class="col-4 text-center"><a href="/admin/dashboard" id="user-stat-users">0</a><div class="small">Utilisateurs</div></div>
+                <div class="col-4 text-center"><a href="/packs">{{ current_user.subscription_type }}</a><div class="small">Abonnement</div></div>
+              </div>
+            </li>
+            <li class="user-footer">
+              <a href="/dashboard" class="btn btn-outline-secondary">Profil</a>
+              <a href="/logout" class="btn btn-outline-danger float-end">Déconnexion</a>
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Sidebar -->
+  <aside class="app-sidebar bg-body-secondary shadow" data-bs-theme="dark">
+    <div class="sidebar-brand">
+      <a href="/admin/dashboard" class="brand-link">
+        <img src="/static/adminlte/img/AdminLTELogo.png" alt="FactuScan" class="brand-image opacity-75 shadow" />
+        <span class="brand-text fw-light">FactuScan Admin</span>
+      </a>
+    </div>
+    <div class="sidebar-wrapper">
+      <nav class="mt-2">
+        <ul class="nav sidebar-menu flex-column" data-lte-toggle="treeview" role="navigation" data-accordion="false">
+          <li class="nav-item menu-open">
+            <a href="#" class="nav-link active">
+              <i class="nav-icon bi bi-speedometer"></i>
+              <p>Dashboard<i class="nav-arrow bi bi-chevron-right"></i></p>
+            </a>
+            <ul class="nav nav-treeview">
+              <li class="nav-item">
+                <a href="/admin/dashboard" class="nav-link active"><i class="nav-icon bi bi-circle"></i><p>Vue d'ensemble</p></a>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-item">
+            <a href="/" class="nav-link"><i class="nav-icon bi bi-house"></i><p>Site Public</p></a>
+          </li>
+          <li class="nav-item">
+            <a href="#" class="nav-link">
+              <i class="nav-icon bi bi-file-earmark-text"></i>
+              <p>Factures<i class="nav-arrow bi bi-chevron-right"></i></p>
+            </a>
+            <ul class="nav nav-treeview">
+              <li class="nav-item"><a href="/dashboard" class="nav-link"><i class="nav-icon bi bi-circle"></i><p>Toutes les factures</p></a></li>
+            </ul>
+          </li>
+          <li class="nav-item">
+            <a href="#" class="nav-link">
+              <i class="nav-icon bi bi-people"></i>
+              <p>Utilisateurs<i class="nav-arrow bi bi-chevron-right"></i></p>
+            </a>
+            <ul class="nav nav-treeview">
+              <li class="nav-item"><a href="/admin/dashboard" class="nav-link"><i class="nav-icon bi bi-circle"></i><p>Liste des utilisateurs</p></a></li>
+            </ul>
+          </li>
+          <li class="nav-header">PARAMÈTRES</li>
+          <li class="nav-item"><a href="/docs" class="nav-link"><i class="nav-icon bi bi-book"></i><p>Documentation</p></a></li>
+          <li class="nav-item"><a href="/packs" class="nav-link"><i class="nav-icon bi bi-credit-card"></i><p>Tarifs &amp; Packs</p></a></li>
+        </ul>
+      </nav>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="app-main">
+    <div class="app-content-header">
+      <div class="container-fluid">
+        <div class="row">
+          <div class="col-sm-6"><h3 class="mb-0">Tableau de Bord Admin</h3></div>
+          <div class="col-sm-6">
+            <ol class="breadcrumb float-sm-end">
+              <li class="breadcrumb-item active" aria-current="page">Admin</li>
+            </ol>
+          </div>
+      </div>
+    <div class="app-content">
+      <div class="container-fluid">
+        <!-- Stat Boxes -->
+        <div class="row">
+          <div class="col-lg-3 col-6">
+            <div class="small-box text-bg-primary">
+              <div class="inner"><h3 id="stat-invoices">{{ invoice_count }}</h3><p>Factures Traitées</p></div>
+              <svg class="small-box-icon" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path d="M2.25 2.25a.75.75 0 000 1.5h1.386c.17 0 .318.114.362.278l2.558 9.592a3.752 3.752 0 00-2.806 3.63c0 .414.336.75.75.75h15.75a.75.75 0 000-1.5H5.378A2.25 2.25 0 017.5 15h11.218a.75.75 0 00.674-.421 60.358 60.358 0 002.96-7.228.75.75 0 00-.525-.965A60.864 60.864 0 005.68 4.509l-.232-.867A1.875 1.875 0 003.636 2.25H2.25zM3.75 20.25a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zM16.5 20.25a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0z"></path>
+              </svg>
+              <a href="/dashboard" class="small-box-footer link-light link-underline-opacity-0 link-underline-opacity-50-hover">Voir plus <i class="bi bi-link-45deg"></i></a>
+            </div>
+          </div>
+          <div class="col-lg-3 col-6">
+            <div class="small-box text-bg-success">
+              <div class="inner"><h3 id="stat-users">{{ user_count }}</h3><p>Utilisateurs</p></div>
+              <svg class="small-box-icon" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path d="M6.25 6.375a4.125 4.125 0 118.25 0 4.125 4.125 0 01-8.25 0zM3.25 19.125a7.125 7.125 0 0114.25 0v.003l-.001.119a.75.75 0 01-.363.63 13.067 13.067 0 01-6.761 1.873c-2.472 0-4.786-.684-6.76-1.873a.75.75 0 01-.364-.63l-.001-.122zM19.75 7.5a.75.75 0 00-1.5 0v2.25H16a.75.75 0 000 1.5h2.25v2.25a.75.75 0 001.5 0v-2.25H22a.75.75 0 000-1.5h-2.25V7.5z"></path>
+              </svg>
+              <a href="#" class="small-box-footer link-light link-underline-opacity-0 link-underline-opacity-50-hover">Voir plus <i class="bi bi-link-45deg"></i></a>
+            </div>
+          </div>
+          <div class="col-lg-3 col-6">
+            <div class="small-box text-bg-warning">
+              <div class="inner"><h3 id="stat-amount">{{ "%.2f"|format(total_ttc or 0) }} DT</h3><p>Total TTC</p></div>
+              <svg class="small-box-icon" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zM12.75 9a.75.75 0 00-1.5 0v2.25H9a.75.75 0 000 1.5h2.25V15a.75.75 0 001.5 0v-2.25H15a.75.75 0 000-1.5h-2.25V9z"></path>
+              </svg>
+              <a href="/dashboard" class="small-box-footer link-dark link-underline-opacity-0 link-underline-opacity-50-hover">Voir plus <i class="bi bi-link-45deg"></i></a>
+            </div>
+          </div>
+          <div class="col-lg-3 col-6">
+            <div class="small-box text-bg-danger">
+              <div class="inner"><h3 id="stat-ai">{{ 'Actif' if ai_active else 'Inactif' }}</h3><p>IA Gemini</p></div>
+              <svg class="small-box-icon" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path clip-rule="evenodd" fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zm4.28 10.28a.75.75 0 000-1.06l-3-3a.75.75 0 10-1.06 1.06l1.72 1.72H8.25a.75.75 0 000 1.5h5.69l-1.72 1.72a.75.75 0 101.06 1.06l3-3z"></path>
+              </svg>
+              <a href="/docs" class="small-box-footer link-light link-underline-opacity-0 link-underline-opacity-50-hover">Voir plus <i class="bi bi-link-45deg"></i></a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Analytics & Distribution Row -->
+        <div class="row">
+          <div class="col-lg-6 connectedSortable">
+            <div class="card mb-4">
+              <div class="card-header">
+                <h3 class="card-title">Activité des Factures</h3>
+                <div class="card-tools">
+                  <button type="button" class="btn btn-tool" data-lte-toggle="card-collapse">
+                    <i data-lte-icon="expand" class="bi bi-plus-lg"></i>
+                    <i data-lte-icon="collapse" class="bi bi-dash-lg"></i>
+                  </button>
+                  <button type="button" class="btn btn-tool" data-lte-toggle="card-remove"><i class="bi bi-x-lg"></i></button>
+                </div>
+              </div>
+              <div class="card-body">
+                <div id="revenue-chart"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-6 connectedSortable">
+            <div class="card text-white bg-primary bg-gradient border-primary mb-4">
+              <div class="card-header border-0">
+                <h3 class="card-title">Carte de Distribution des Utilisateurs</h3>
+                <div class="card-tools">
+                  <button type="button" class="btn btn-primary btn-sm" data-lte-toggle="card-collapse">
+                    <i data-lte-icon="expand" class="bi bi-plus-lg"></i>
+                    <i data-lte-icon="collapse" class="bi bi-dash-lg"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="card-body">
+                <div id="world-map"></div>
+              </div>
+              <div class="card-footer border-0 bg-transparent">
+                <div class="row g-2" id="distribution-list">
+                   <div class="col-12 text-center small">Chargement de la répartition...</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chat Interface Row -->
+        <div class="row">
+          <div class="col-lg-6 connectedSortable">
+            <!-- Global Chat Card -->
+            <div class="card direct-chat direct-chat-primary mb-4">
+              <div class="card-header">
+                <h3 class="card-title">Global Chat</h3>
+                <div class="card-tools">
+                  <span title="Messages totaux" class="badge text-bg-primary" id="global-chat-badge">0</span>
+                  <button type="button" class="btn btn-tool" data-lte-toggle="card-collapse"><i class="bi bi-dash-lg"></i></button>
+                </div>
+              </div>
+              <div class="card-body">
+                <div class="direct-chat-messages" id="global-chat-container">
+                  <div class="text-center text-muted small py-4">Initialisation du flux global...</div>
+                </div>
+              </div>
+              <div class="card-footer">
+                <form onsubmit="return false;">
+                  <div class="input-group">
+                    <input type="text" id="global-chat-input" placeholder="Message à tous les clients..." class="form-control" />
+                    <span class="input-group-append"><button type="button" class="btn btn-primary">Diffuser</button></span>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-6 connectedSortable">
+            <!-- Specific Chat Card -->
+            <div class="card direct-chat direct-chat-warning mb-4 direct-chat-contacts-open">
+              <div class="card-header">
+                <h3 class="card-title">Discussion Spécifique</h3>
+                <div class="card-tools">
+                  <span title="Messages" class="badge text-bg-warning" id="chat-notif-badge">0</span>
+                  <button type="button" class="btn btn-tool" title="Contacts" data-lte-toggle="chat-pane"><i class="bi bi-people-fill"></i></button>
+                  <button type="button" class="btn btn-tool" data-lte-toggle="card-collapse"><i class="bi bi-dash-lg"></i></button>
+                </div>
+              </div>
+              <div class="card-body">
+                <div class="direct-chat-messages" id="specific-chat-container">
+                  <div class="text-center text-muted small py-4">Sélectionnez un client dans la liste des contacts (icône en haut à droite) pour discuter</div>
+                </div>
+                <div class="direct-chat-contacts">
+                  <ul class="contacts-list" id="specific-contacts-list">
+                    <li class="text-center text-muted small py-4">Chargement des contacts...</li>
+                  </ul>
+                </div>
+              </div>
+              <div class="card-footer">
+                <form onsubmit="return false;">
+                  <div class="input-group">
+                    <input type="text" id="specific-chat-input" placeholder="Répondre au client..." class="form-control" />
+                    <span class="input-group-append"><button type="button" onclick="replyToLastChat()" class="btn btn-warning">Envoyer</button></span>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pack Management Table Row -->
+        <div class="row">
+          <div class="col-12 connectedSortable">
+            <div class="card mb-4">
+              <div class="card-header">
+                <h3 class="card-title">Gestion des Tarifs (Packs)</h3>
+                <div class="card-tools">
+                   <button type="button" class="btn btn-tool" onclick="loadAdminPacks()"><i class="bi bi-arrow-clockwise"></i></button>
+                   <button type="button" class="btn btn-tool" data-lte-toggle="card-collapse"><i data-lte-icon="expand" class="bi bi-plus-lg"></i><i data-lte-icon="collapse" class="bi bi-dash-lg"></i></button>
+                </div>
+              </div>
+              <div class="card-body p-0">
+                <div class="table-responsive">
+                  <table class="table table-hover mb-0">
+                    <thead>
+                      <tr>
+                        <th>Nom</th>
+                        <th>Prix (EUR)</th>
+                        <th>Prix (TND)</th>
+                        <th>Limite</th>
+                        <th>Mis en avant</th>
+                        <th class="text-end" style="width: 120px;">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="admin-packs-tbody">
+                      <tr><td colspan="6" class="text-center text-muted py-3">Chargement...</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- User Management Table Row -->
+        <div class="row">
+          <div class="col-12 connectedSortable">
+            <div class="card mb-4">
+              <div class="card-header">
+                <h3 class="card-title">Gestion des Utilisateurs</h3>
+                <div class="card-tools d-flex align-items-center gap-2">
+                  <div class="input-group input-group-sm d-none d-md-flex" style="width: 200px;">
+                    <input type="text" id="user-search" class="form-control" placeholder="Rechercher...">
+                    <span class="input-group-text bg-transparent border-start-0"><i class="bi bi-search"></i></span>
+                  </div>
+                  <button type="button" class="btn btn-tool" onclick="loadRecentUsers()"><i class="bi bi-arrow-clockwise"></i></button>
+                  <button type="button" class="btn btn-tool" data-lte-toggle="card-collapse">
+                    <i data-lte-icon="expand" class="bi bi-plus-lg"></i>
+                    <i data-lte-icon="collapse" class="bi bi-dash-lg"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="card-body p-0">
+                <div class="table-responsive">
+                  <table class="table table-hover mb-0">
+                    <thead>
+                      <tr>
+                        <th style="width: 50px;">Avatar</th>
+                        <th onclick="sortUsers('username')" style="cursor:pointer">Utilisateur <i class="bi bi-sort-alpha-down"></i></th>
+                        <th onclick="sortUsers('company_name')" style="cursor:pointer">Entreprise</th>
+                        <th>Email</th>
+                        <th>Localisation</th>
+                        <th>Rôle</th>
+                        <th>Abonnement</th>
+                        <th>Statut</th>
+                        <th class="text-end">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="recent-users-tbody">
+                      <tr><td colspan="9" class="text-center text-muted py-3">Chargement...</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Edit Pack Modal -->
+  <div class="modal fade" id="editPackModal" tabindex="-1" aria-labelledby="editPackModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content text-bg-dark border-secondary">
+        <div class="modal-header border-secondary">
+          <h5 class="modal-title" id="editPackModalLabel">Modifier le pack <span id="edit-pack-name-title"></span></h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="edit-pack-id">
+          <div class="mb-3">
+            <label for="edit-pack-name" class="form-label">Nom du Pack</label>
+            <input type="text" class="form-control bg-dark text-white border-secondary" id="edit-pack-name">
+          </div>
+          <div class="mb-3">
+            <label for="edit-pack-desc" class="form-label">Description</label>
+            <textarea class="form-control bg-dark text-white border-secondary" id="edit-pack-desc" rows="3"></textarea>
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="edit-pack-eur" class="form-label">Prix (EUR)</label>
+              <input type="number" step="0.01" class="form-control bg-dark text-white border-secondary" id="edit-pack-eur">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label for="edit-pack-tnd" class="form-label">Prix (TND)</label>
+              <input type="number" step="0.01" class="form-control bg-dark text-white border-secondary" id="edit-pack-tnd">
+            </div>
+          </div>
+          <div class="mb-3">
+            <label for="edit-pack-limit" class="form-label">Limite d'utilisation</label>
+            <input type="text" class="form-control bg-dark text-white border-secondary" id="edit-pack-limit">
+          </div>
+          <div class="mb-3">
+            <label for="edit-pack-features" class="form-label">Fonctionnalités (une par ligne)</label>
+            <textarea class="form-control bg-dark text-white border-secondary" id="edit-pack-features" rows="5"></textarea>
+          </div>
+          <div class="form-check form-switch mb-3">
+            <input class="form-check-input" type="checkbox" id="edit-pack-featured">
+            <label class="form-check-label" for="edit-pack-featured">Mettre en avant</label>
+          </div>
+        </div>
+        <div class="modal-footer border-secondary">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+          <button type="button" class="btn btn-primary" onclick="savePackChanges()">Enregistrer</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="app-footer">
+    <div class="float-end d-none d-sm-inline">FactuScan Admin v1.0</div>
+    <strong>Copyright &copy; 2024 <a href="/" class="text-decoration-none">FactuScan</a>.</strong> Tous droits réservés.
+  </footer>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/overlayscrollbars@2.11.0/browser/overlayscrollbars.browser.es6.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js" crossorigin="anonymous"></script>
+<script src="/static/adminlte/js/adminlte.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@3.37.1/dist/apexcharts.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsvectormap@1.5.3/dist/js/jsvectormap.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsvectormap@1.5.3/dist/maps/world.js" crossorigin="anonymous"></script>
+
+<script>
+  let adminPacks = [];
+  window.loadAdminPacks = async function() {
+    try {
+      const res = await fetch('/api/packs');
+      adminPacks = await res.json();
+      const tbody = document.getElementById('admin-packs-tbody');
+      if (!tbody) return;
+      tbody.innerHTML = adminPacks.map(p => `
+        <tr>
+          <td class="fw-bold align-middle">${p.name}</td>
+          <td class="align-middle">${p.price_eur} €</td>
+          <td class="align-middle">${p.price_tnd} DT</td>
+          <td class="align-middle">${p.limit_text}</td>
+          <td class="align-middle"><span class="badge ${p.is_featured ? 'text-bg-success' : 'text-bg-secondary'}">${p.is_featured ? 'OUI' : 'NON'}</span></td>
+          <td class="text-end align-middle">
+            <button class="btn btn-sm btn-outline-primary" onclick="openEditPackModal(${p.id})"><i class="bi bi-pencil"></i> Editer</button>
+          </td>
+        </tr>
+      `).join('');
+    } catch (e) { console.error('Packs load error:', e); }
+  }
+
+  window.openEditPackModal = function(id) {
+      const p = adminPacks.find(x => x.id === id);
+      if(!p) return;
+      document.getElementById('edit-pack-id').value = p.id;
+      document.getElementById('edit-pack-name').value = p.name;
+      document.getElementById('edit-pack-name-title').textContent = p.name;
+      document.getElementById('edit-pack-desc').value = p.description;
+      document.getElementById('edit-pack-eur').value = p.price_eur;
+      document.getElementById('edit-pack-tnd').value = p.price_tnd;
+      document.getElementById('edit-pack-limit').value = p.limit_text;
+      document.getElementById('edit-pack-features').value = p.features.join('\n');
+      document.getElementById('edit-pack-featured').checked = p.is_featured;
+
+      editPackModalInstance.show();
+  }
+
+  window.savePackChanges = async function() {
+      const id = document.getElementById('edit-pack-id').value;
+      const features = document.getElementById('edit-pack-features').value.split('\n').filter(l => l.trim() !== '');
+      const payload = {
+          name: document.getElementById('edit-pack-name').value,
+          description: document.getElementById('edit-pack-desc').value,
+          price_eur: document.getElementById('edit-pack-eur').value,
+          price_tnd: document.getElementById('edit-pack-tnd').value,
+          limit_text: document.getElementById('edit-pack-limit').value,
+          features: features,
+          is_featured: document.getElementById('edit-pack-featured').checked
+      };
+      console.log('Sending payload:', payload); // Debug log
+
+      const res = await fetch(`/admin/api/packs/${id}`, {
+          method: 'PUT',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(payload)
+      });
+      console.log('Response status:', res.status); // Debug log
+      if(res.ok) {
+          alert("Pack mis à jour avec succès !");
+          editPackModalInstance.hide();
+          loadAdminPacks();
+      } else {
+          const err = await res.json();
+          alert("Erreur lors de la mise à jour : " + (err.error || "Erreur inconnue"));
+      }
+  }
+
+  // OverlayScrollbars
+  const SELECTOR_SIDEBAR_WRAPPER = ".sidebar-wrapper";
+  const Default = { scrollbarTheme: "os-theme-light", scrollbarAutoHide: "leave", scrollbarClickScroll: true };
+  document.addEventListener("DOMContentLoaded", function () {
+    const sidebarWrapper = document.querySelector(SELECTOR_SIDEBAR_WRAPPER);
+    const isMobile = window.innerWidth <= 992;
+    if (sidebarWrapper && OverlayScrollbarsGlobal?.OverlayScrollbars !== undefined && !isMobile) {
+      OverlayScrollbarsGlobal.OverlayScrollbars(sidebarWrapper, {
+        scrollbars: { theme: Default.scrollbarTheme, autoHide: Default.scrollbarAutoHide, clickScroll: Default.scrollbarClickScroll }
+      });
+    }
+  });
+
+  let allUsers = [];
+
+  // SortableJS
+  document.querySelectorAll('.connectedSortable').forEach(function (el) {
+    new Sortable(el, { group: 'shared', handle: '.card-header' });
+  });
+  document.querySelectorAll('.connectedSortable .card-header').forEach(function (cardHeader) {
+    cardHeader.style.cursor = 'move';
+  });
+
+  // Real statistics integration
+  async function updateDashboard() {
+    try {
+      const res = await fetch('/admin/api/stats');
+      const data = await res.json();
+
+      // Map Country Names to ISO Codes for jsVectorMap
+      const isoMapping = { 
+          'Tunisie': 'TN', 'Tunisia': 'TN', 
+          'France': 'FR', 
+          'Canada': 'CA', 
+          'Belgique': 'BE', 'Belgium': 'BE',
+          'Maroc': 'MA', 'Morocco': 'MA',
+          'Algérie': 'DZ', 'Algeria': 'DZ',
+          'Suisse': 'CH', 'Switzerland': 'CH',
+          'Espagne': 'ES', 'Spain': 'ES',   
+          'Italie': 'IT', 'Italy': 'IT',
+          'États-Unis': 'US', 'United States': 'US'};
+      const mapData = {};
+      const listContainer = document.getElementById('distribution-list');
+      
+      let listHtml = '';
+      const dist = data.user_distribution || {};
+      for (const [country, count] of Object.entries(dist)) {
+          const code = isoMapping[country];
+          if (code) mapData[code] = count;
+          
+          listHtml += `
+            <div class="col-4 col-md-2 text-center border-end border-white border-opacity-10 py-2">
+              <div class="fw-bold">${count}</div>
+              <div class="small text-white-50">${country}</div>
+            </div>`;
+      }
+      if (listContainer) listContainer.innerHTML = listHtml || '<div class="col-12 text-center small">Aucun utilisateur localisé</div>';
+
+      // Update Map
+      if (window.dashboardMap) {
+          window.dashboardMap.series.regions[0].setValues(mapData);
+      } else {
+          window.dashboardMap = new jsVectorMap({
+              selector: '#world-map',
+              map: 'world',
+              zoomOnScroll: false,
+              backgroundColor: 'transparent',
+              draggable: true,
+              regionStyle: { 
+                  initial: { 
+                      fill: 'rgba(255, 255, 255, 0.3)',
+                      stroke: 'rgba(255, 255, 255, 0.5)',
+                      strokeWidth: 1,
+                      fillOpacity: 1
+                  } 
+              },
+              series: {
+                  regions: [{
+                      values: mapData,
+                      attribute: 'fill',
+                      scale: ['#ffff00', '#ff0000'], // Density heatmap: Yellow (low) to Red (high)
+                      normalizeFunction: 'linear'
+                  }]
+              }
+          });
+      }
+
+      document.getElementById('stat-invoices').textContent = data.totals.invoices;
+      document.getElementById('stat-users').textContent = data.totals.users;
+      document.getElementById('stat-amount').textContent = data.totals.ttc.toLocaleString('fr-TN', { minimumFractionDigits: 2 }) + ' DT';
+      document.getElementById('user-stat-invoices').textContent = data.totals.invoices;
+      document.getElementById('user-stat-users').textContent = data.totals.users;
+
+      const sales_chart_options = {
+        series: [
+          { name: 'Nombre de Factures', data: data.chart.counts || [] },
+          { name: 'Montant (DT)', data: data.chart.sums || [] }
+        ],
+        chart: { height: 400, type: 'area', toolbar: { show: false } },
+        legend: { show: false },
+        colors: ['#0d6efd', '#20c997'],
+        dataLabels: { enabled: false },
+        stroke: { curve: 'smooth' },
+        xaxis: { categories: data.chart.labels },
+        tooltip: { x: { format: 'dd MMM yyyy' } }
+      };
+      new ApexCharts(document.querySelector('#revenue-chart'), sales_chart_options).render();
+
+    } catch (e) {
+      console.error('Dashboard stats error:', e);
+      new ApexCharts(document.querySelector('#revenue-chart'), {
+        series: [{ name: 'Nombre de Factures', data: [0,0,0,0,0,0,0] }],
+        chart: { height: 400, type: 'area', toolbar: { show: false } },
+        colors: ['#0d6efd'],
+        stroke: { curve: 'smooth' },
+        xaxis: { categories: ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'] }
+      }).render();
+    }
+  }
+
+  async function loadRecentUsers() {
+    try {
+      const res = await fetch('/admin/api/users');
+      allUsers = await res.json();
+      renderRecentUsers(allUsers);
+    } catch (e) {
+      console.error('Recent users error:', e);
+    }
+  }
+
+  function renderRecentUsers(users) {
+    const tbody = document.getElementById('recent-users-tbody');
+    if (!tbody) return;
+    if (users.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-3">Aucun utilisateur trouvé</td></tr>';
+      return;
+    }
+    tbody.innerHTML = users.map(u => `
+        <tr>
+          <td class="align-middle">
+            <img src="${(u.profile_image && u.profile_image !== 'default_avatar.png') ? '/static/uploads/profiles/' + u.profile_image : 'https://ui-avatars.com/api/?name=' + encodeURIComponent(u.username) + '&background=random'}" 
+                 class="rounded-circle table-avatar shadow-sm" alt="Avatar">
+          </td>
+          <td class="align-middle">
+            <div class="fw-bold">${u.username}</div>
+            <div class="small text-muted">${u.full_name || '—'}</div>
+          </td>
+          <td class="align-middle text-muted small">${u.company_name || 'Indépendant'}</td>
+          <td class="align-middle small">${u.email}</td>
+          <td class="align-middle">
+            <div class="small">${u.city || '—'}</div>
+            <div class="badge bg-light text-dark fw-normal" style="font-size: 0.65rem;">${u.country || '—'}</div>
+          </td>
+          <td class="align-middle"><span class="badge ${u.role === 'admin' ? 'text-bg-danger' : 'text-bg-info'}">${u.role}</span></td>
+          <td class="align-middle"><span class="text-secondary small fw-bold">${u.subscription}</span></td>
+          <td class="align-middle">
+            <span class="badge ${u.is_authorized ? 'text-bg-success' : 'text-bg-warning'}">
+              ${u.is_authorized ? 'Autorisé' : 'En attente'}
+            </span>
+          </td>
+          <td class="align-middle text-end">
+            <div class="btn-group">
+              <button class="btn btn-sm ${u.is_authorized ? 'btn-outline-warning' : 'btn-outline-success'}" 
+                      onclick="toggleUserAuthorization(${u.id}, ${!u.is_authorized})"
+                      title="${u.is_authorized ? 'Révoquer accès' : 'Autoriser accès'}">
+                <i class="bi ${u.is_authorized ? 'bi-person-x' : 'bi-person-check'}"></i>
+              </button>
+              <button class="btn btn-sm btn-outline-danger" onclick="deleteUser(${u.id})" title="Supprimer">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+  }
+
+  async function toggleUserAuthorization(userId, status) {
+    try {
+      const res = await fetch(`/admin/api/users/${userId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_authorized: status })
+      });
+      if (res.ok) loadRecentUsers();
+    } catch (e) { console.error('Error updating status:', e); }
+  }
+
+  async function deleteUser(userId) {
+    if (!confirm('Voulez-vous vraiment supprimer cet utilisateur ?')) return;
+    try {
+      const res = await fetch(`/admin/api/users/${userId}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) loadRecentUsers();
+    } catch (e) { console.error('Error deleting user:', e); }
+  }
+
+  async function loadRecentInvoices() { // Renamed internally to handle messages
+    try {
+      const res = await fetch('/admin/api/chat_messages');
+      const messages = await res.json();
+      const container = document.getElementById('recent-invoices-dropdown');
+      if (!container) return;
+
+      // Filter only new/unread messages for the dropdown if preferred, 
+      // or show latest 5
+      container.innerHTML = messages.slice(-5).reverse().map(m => `
+        <a href="/admin/messages" class="dropdown-item">
+          <div class="d-flex">
+            <div class="flex-shrink-0"><img src="${(m.img && m.img !== 'default_avatar.png') ? '/static/uploads/profiles/' + m.img : 'https://ui-avatars.com/api/?name=' + encodeURIComponent(m.user) + '&background=random'}" alt="User Avatar" class="img-size-50 rounded-circle me-3" /></div>
+            <div class="flex-grow-1">
+              <h3 class="dropdown-item-title">${m.user}<span class="float-end fs-7 ${m.status === 'new' ? 'text-danger' : 'text-muted'}"><i class="bi bi-circle-fill" style="font-size: 0.5rem;"></i></span></h3>
+              <p class="fs-7 text-truncate" style="max-width: 200px;">${m.text}</p>
+              <p class="fs-7 text-secondary"><i class="bi bi-clock-fill me-1"></i> ${m.time}</p>
+            </div></div>
+        </a>
+        <div class="dropdown-divider"></div>
+      `).join('');
+    } catch (e) {
+      console.error('Recent invoices error:', e);
+    }
+  }
+
+  async function loadNotifications() {
+    try {
+      const res = await fetch('/admin/api/notifications');
+      const data = await res.json();
+      const badge = document.getElementById('notif-badge');
+      const msgBadge = document.getElementById('msg-badge');
+      const sidebarMsgBadge = document.getElementById('sidebar-msg-badge');
+      const header = document.getElementById('notif-header');
+      const msgHeader = document.getElementById('msg-dropdown-header');
+      
+      if (msgBadge) msgBadge.textContent = data.new_messages || 0;
+      if (msgHeader) msgHeader.textContent = (data.new_messages || 0) + ' Nouveaux Messages';
+      if (sidebarMsgBadge) {
+          sidebarMsgBadge.textContent = data.new_messages || 0;
+          sidebarMsgBadge.style.display = data.new_messages > 0 ? 'inline-block' : 'none';
+      }
+      if (document.getElementById('chat-notif-badge')) document.getElementById('chat-notif-badge').textContent = data.new_messages || 0;
+      
+      if (badge) badge.textContent = data.total;
+      if (header) header.textContent = data.total + ' Notifications';
+      document.getElementById('notif-new-invoices').textContent = data.new_invoices || 0;
+      document.getElementById('notif-new-users').textContent = data.new_users || 0;
+    } catch (e) {
+      console.error('Notifications error:', e);
+    }
+  }
+
+  async function loadChatMessages() {
+    try {
+      const res = await fetch('/admin/api/chat_messages');
+      const messages = await res.json();
+      const globalContainer = document.getElementById('global-chat-container');
+      const specificContacts = document.getElementById('specific-contacts-list');
+      
+      if (!globalContainer) return;
+      
+      if (messages.length === 0) {
+          globalContainer.innerHTML = '<div class="text-center text-muted small py-4">Aucun message.</div>';
+          specificContacts.innerHTML = '<li class="text-center text-muted small py-2">Aucun contact.</li>';
+          return;
+      }
+
+      // Update Global Chat Badge
+      if (document.getElementById('global-chat-badge')) {
+          document.getElementById('global-chat-badge').textContent = messages.length;
+      }
+
+      globalContainer.innerHTML = messages.flatMap(m => {
+          const thread = [`
+            <div class="direct-chat-msg">
+              <div class="direct-chat-infos clearfix">
+                <span class="direct-chat-name float-start">${m.user}</span>
+                <span class="direct-chat-timestamp float-end">${m.time}</span>
+              </div>
+              <img class="direct-chat-img" src="${(m.img && m.img !== 'default_avatar.png') ? '/static/uploads/profiles/' + m.img : 'https://ui-avatars.com/api/?name=' + encodeURIComponent(m.user) + '&background=random'}" alt="user image" />
+              <div class="direct-chat-text">${m.text}</div>
+            </div>
+          `];
+          if (m.reply) {
+              thread.push(`
+                <div class="direct-chat-msg end">
+                  <div class="direct-chat-infos clearfix">
+                    <span class="direct-chat-name float-end">Admin (Moi)</span>
+                    <span class="direct-chat-timestamp float-start">${m.time}</span>
+                  </div>
+                  <img class="direct-chat-img" src="/static/adminlte/img/user2-160x160.jpg" alt="Admin" />
+                  <div class="direct-chat-text">${m.reply}</div>
+                </div>
+              `);
+          }
+          return thread;
+      }).join('');
+      
+      // Specific Chat: Grouping unique users for the contact list
+      const uniqueUsers = [...new Map(messages.map(m => [m.user, m])).values()];
+      specificContacts.innerHTML = uniqueUsers.map(m => `
+        <li>
+          <a href="#" onclick="selectUserConversation('${m.user}', '${m.img}'); return false;">
+            <img class="contacts-list-img" src="${(m.img && m.img !== 'default_avatar.png') ? '/static/uploads/profiles/' + m.img : 'https://ui-avatars.com/api/?name=' + encodeURIComponent(m.user) + '&background=random'}" />
+            <div class="contacts-list-info">
+              <span class="contacts-list-name">${m.user} <small class="contacts-list-date float-end">${m.time}</small></span>
+              <span class="contacts-list-msg">${m.text.substring(0, 30)}...</span>
+            </div>
+          </a>
+        </li>
+      `).join('');
+      
+      globalContainer.scrollTop = globalContainer.scrollHeight;
+      window.lastChatId = messages[messages.length - 1].id;
+    } catch (e) { console.error('Chat load error:', e); }
+  }
+
+  window.selectUserConversation = async function(username, userImg) {
+      // Visual feedback: toggle pane to show conversation
+      document.querySelector('.direct-chat-warning').classList.remove('direct-chat-contacts-open');
+      const container = document.getElementById('specific-chat-container');
+      container.innerHTML = '<div class="text-center py-4"><div class="spinner-border spinner-border-sm text-warning"></div></div>';
+      
+      try {
+          // In this demo logic, we filter the local messages for the selected user
+          const res = await fetch('/admin/api/chat_messages');
+          const allMsg = await res.json();
+          const userMsgs = allMsg.filter(m => m.user === username);
+          
+          container.innerHTML = userMsgs.flatMap(m => {
+             const thread = [`<div class="direct-chat-msg">
+                <div class="direct-chat-infos clearfix"><span class="direct-chat-name float-start">${m.user}</span></div>
+                <img class="direct-chat-img" src="${(m.img && m.img !== 'default_avatar.png') ? '/static/uploads/profiles/' + m.img : 'https://ui-avatars.com/api/?name=' + encodeURIComponent(m.user) + '&background=random'}" />
+                <div class="direct-chat-text">${m.text}</div></div>`];
+             if (m.reply) thread.push(`<div class="direct-chat-msg end">
+                <div class="direct-chat-infos clearfix"><span class="direct-chat-name float-end">Moi (Admin)</span></div>
+                <img class="direct-chat-img" src="/static/adminlte/img/user2-160x160.jpg" />
+                <div class="direct-chat-text">${m.reply}</div></div>`);
+             return thread;
+          }).join('');
+          container.scrollTop = container.scrollHeight;
+          window.lastChatId = userMsgs[userMsgs.length - 1].id;
+      } catch(e) { container.innerHTML = 'Erreur de chargement.'; }
+  };
+
+  async function replyToLastChat() {
+      const input = document.getElementById('specific-chat-input');
+      const reply = input.value;
+      if (!reply || !window.lastChatId) return;
+      const res = await fetch(`/admin/api/messages/${window.lastChatId}/reply`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({reply})
+      });
+      if (res.ok) {
+          input.value = '';
+          loadChatMessages();
+          loadNotifications();
+      }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    // Initialize Bootstrap Modal instance
+    window.editPackModalInstance = new bootstrap.Modal(document.getElementById('editPackModal'));
+
+    updateDashboard();
+    loadRecentUsers();
+    loadRecentInvoices();
+    loadNotifications();
+    loadChatMessages();
+    loadAdminPacks();
+    
+    // Socket.IO Real-time Logic
+    const socket = io();
+    
+    socket.on('new_reclamation', (data) => {
+        loadChatMessages();
+        loadNotifications();
+    });
+
+    socket.on('message_status_updated', () => {
+        loadChatMessages();
+        loadNotifications();
+    });
+
+    // User Search Filter Enhanced
+    document.getElementById('user-search')?.addEventListener('input', (e) => {
+      const term = e.target.value.toLowerCase();
+      const filtered = allUsers.filter(u => 
+        u.username.toLowerCase().includes(term) || 
+        (u.full_name && u.full_name.toLowerCase().includes(term)) ||
+        (u.company_name && u.company_name.toLowerCase().includes(term)) ||
+        u.email.toLowerCase().includes(term) ||
+        u.role.toLowerCase().includes(term) ||
+        (u.country && u.country.toLowerCase().includes(term))
+      );
+      renderRecentUsers(filtered);
+    });
+
+    // Sorting Logic
+    let currentSort = { key: '', asc: true };
+    window.sortUsers = function(key) {
+        currentSort.asc = currentSort.key === key ? !currentSort.asc : true;
+        currentSort.key = key;
+        
+        const sorted = [...allUsers].sort((a, b) => {
+            let valA = a[key] || '';
+            let valB = b[key] || '';
+            if (typeof valA === 'string') valA = valA.toLowerCase();
+            if (typeof valB === 'string') valB = valB.toLowerCase();
+            
+            if (valA < valB) return currentSort.asc ? -1 : 1;
+            if (valA > valB) return currentSort.asc ? 1 : -1;
+            return 0;
+        });
+        renderRecentUsers(sorted);
+    };
+
+    // Sparklines
+    const sparklineData = [
+      [1000, 1200, 920, 927, 931, 1027, 819, 930, 1021],
+      [515, 519, 520, 522, 652, 810, 370, 627, 319, 630, 921],
+      [15, 19, 20, 22, 33, 27, 31, 27, 19, 30, 21]
+    ];
+
+    sparklineData.forEach((data, index) => {
+      const el = document.querySelector(`#sparkline-${index + 1}`);
+      if (el) {
+        new ApexCharts(el, {
+          series: [{ data: data }],
+          chart: { type: 'area', height: 50, sparkline: { enabled: true } },
+          stroke: { curve: 'smooth' },
+          fill: { opacity: 0.3 },
+          colors: ['#ffffff']
+        }).render();
+      }
+    });
+  });
+</script>
+{% endblock %}

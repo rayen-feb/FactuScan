@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% block title %}Administration — FactuScan{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/static/adminlte/css/adminlte.min.css" />
+<style>
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r2); color: #fff; }
+  .table { color: var(--t1); }
+  .table thead th { border-bottom: 2px solid var(--border); color: var(--t2); text-transform: uppercase; font-size: 0.75rem; }
+  .table td { border-bottom: 1px solid var(--border); vertical-align: middle; }
+  .badge-admin { background: var(--err); }
+  .badge-user { background: var(--acc); }
+  .btn-action { padding: 4px 8px; font-size: 0.8rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4" style="max-width: 1400px;">
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card p-3 text-center">
+                <h6 class="text-uppercase text-muted small">Total Utilisateurs</h6>
+                <h2 id="total-users" class="mb-0">{{ user_count }}</h2>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card p-3 text-center border-primary">
+                <h6 class="text-uppercase text-muted small">Statut IA</h6>
+                <h2 class="mb-0 {{ 'text-success' if ai_active else 'text-danger' }}">
+                    {{ 'Opérationnel' if ai_active else 'Inactif' }}
+                </h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h3 class="card-title mb-0">Gestion des Utilisateurs</h3>
+            <button class="btn btn-sm btn-outline-primary" onclick="loadUsers()"><i class="bi bi-arrow-clockwise"></i> Actualiser</button>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Utilisateur</th>
+                            <th>Email</th>
+                            <th>Rôle</th>
+                            <th>Abonnement</th>
+                            <th>Date d'inscription</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="user-table-body">
+                        <!-- Loaded via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal fade" id="editUserModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content text-bg-dark border-secondary">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title">Modifier l'utilisateur</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="edit-user-id">
+                <div class="mb-3">
+                    <label class="form-label">Rôle</label>
+                    <select id="edit-user-role" class="form-select bg-dark text-white border-secondary">
+                        <option value="user">Utilisateur</option>
+                        <option value="admin">Administrateur</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Type d'abonnement</label>
+                    <select id="edit-user-sub" class="form-select bg-dark text-white border-secondary">
+                        <option value="Basic">Basic</option>
+                        <option value="Pro">Pro</option>
+                        <option value="Enterprise">Enterprise</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-primary" onclick="saveUserChanges()">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    let usersList = [];
+    const editModal = new bootstrap.Modal(document.getElementById('editUserModal'));
+
+    async function loadUsers() {
+        const res = await fetch('/admin/api/users');
+        usersList = await res.json();
+        const tbody = document.getElementById('user-table-body');
+        tbody.innerHTML = usersList.map(u => `
+            <tr>
+                <td class="fw-bold text-white">${u.username}</td>
+                <td class="text-muted small">${u.email}</td>
+                <td><span class="badge ${u.role === 'admin' ? 'badge-admin' : 'badge-user'}">${u.role}</span></td>
+                <td><span class="text-info">${u.subscription}</span></td>
+                <td>${u.created_at}</td>
+                <td class="text-end">
+                    <button class="btn btn-action btn-outline-info me-1" onclick="openEditModal(${u.id})"><i class="bi bi-pencil"></i></button>
+                    <button class="btn btn-action btn-outline-danger" onclick="deleteUser(${u.id})"><i class="bi bi-trash"></i></button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function openEditModal(userId) {
+        const user = usersList.find(u => u.id === userId);
+        document.getElementById('edit-user-id').value = user.id;
+        document.getElementById('edit-user-role').value = user.role;
+        document.getElementById('edit-user-sub').value = user.subscription;
+        editModal.show();
+    }
+
+    async function saveUserChanges() {
+        const id = document.getElementById('edit-user-id').value;
+        const payload = {
+            role: document.getElementById('edit-user-role').value,
+            subscription: document.getElementById('edit-user-sub').value
+        };
+
+        const res = await fetch(`/admin/api/users/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+            editModal.hide();
+            loadUsers();
+        }
+    }
+
+    async function deleteUser(userId) {
+        if (!confirm("Êtes-vous sûr de vouloir supprimer cet utilisateur ? Cette action est irréversible.")) return;
+        
+        const res = await fetch(`/admin/api/users/${userId}`, { method: 'DELETE' });
+        const result = await res.json();
+        
+        if (res.ok) {
+            loadUsers();
+        } else {
+            alert(result.error);
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadUsers);
+</script>
+{% endblock %}

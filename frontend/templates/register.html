@@ -4,39 +4,117 @@
 
 {% block content %}
 <div class="auth-container" style="display: flex; align-items: center; justify-content: center; min-height: 80vh; padding: 2rem;">
-    <div class="card auth-card" style="width: 100%; max-width: 450px; padding: 3rem;">
+    <div class="card auth-card" style="width: 100%; max-width: 800px; padding: 3rem;">
         <div class="auth-header" style="text-align: center; margin-bottom: 2.5rem;">
             <div class="brand-icon" style="margin: 0 auto 1.5rem;">
                 <i class="bi bi-person-plus text-white" style="font-size: 1.5rem;"></i>
             </div>
             <h1 style="font-size: 1.8rem; font-weight: 800; margin-bottom: 0.5rem; background: var(--grad); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">Créer un compte</h1>
-            <p style="color: var(--t2);">Rejoignez FactuScan dès aujourd'hui</p>
+            <p style="color: var(--t2);">Rejoignez l'automatisation intelligente FactuScan</p>
         </div>
 
-        <form id="register-form">
-            <div class="form-group" style="margin-bottom: 1.5rem;">
-                <label for="username" style="display: block; color: var(--t2); font-size: 0.9rem; margin-bottom: 0.5rem;">Nom d'utilisateur</label>
+        <form id="register-form" class="row g-4">
+            <!-- Personal Info -->
+            <div class="col-md-6">
+                <label class="form-label" style="color: var(--t2); font-size: 0.9rem;">Nom complet / Entreprise*</label>
                 <div style="position: relative;">
                     <i class="bi bi-person" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--t3);"></i>
-                    <input type="text" id="username" name="username" required 
-                        style="width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: var(--r2); padding: 0.8rem 1rem 0.8rem 2.8rem; color: #fff; outline: none; transition: var(--tr);"
-                        placeholder="votre_nom">
+                    <input type="text" name="full_name" required class="auth-input" placeholder="Ex: Jean Dupont">
+                </div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label" style="color: var(--t2); font-size: 0.9rem;">Nom de l'entreprise (Optionnel)</label>
+                <div style="position: relative;">
+                    <i class="bi bi-building" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--t3);"></i>
+                    <input type="text" name="company_name" class="auth-input" placeholder="FactuScan SARL">
                 </div>
             </div>
 
-            <div class="form-group" style="margin-bottom: 2rem;">
-                <label for="password" style="display: block; color: var(--t2); font-size: 0.9rem; margin-bottom: 0.5rem;">Mot de passe</label>
+            <div class="col-md-6">
+                <label class="form-label" style="color: var(--t2); font-size: 0.9rem;">Nom d'utilisateur*</label>
+                <div style="position: relative;">
+                    <i class="bi bi-person" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--t3);"></i>
+                    <input type="text" name="username" required class="auth-input" placeholder="nom_utilisateur">
+                </div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label" style="color: var(--t2); font-size: 0.9rem;">Email*</label>
+                <div style="position: relative;">
+                    <i class="bi bi-envelope" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--t3);"></i>
+                    <input type="email" name="email" required class="auth-input" placeholder="contact@exemple.com">
+                </div>
+            </div>
+
+            <!-- Password -->
+            <div class="col-md-6">
+                <label class="form-label" style="color: var(--t2); font-size: 0.9rem;">Mot de passe*</label>
                 <div style="position: relative;">
                     <i class="bi bi-shield-lock" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--t3);"></i>
-                    <input type="password" id="password" name="password" required 
-                        style="width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: var(--r2); padding: 0.8rem 1rem 0.8rem 2.8rem; color: #fff; outline: none; transition: var(--tr);"
-                        placeholder="••••••••">
+                    <input type="password" name="password" id="register-password" required class="auth-input" placeholder="••••••••">
+                </div>
+                <div class="pw-strength-container mt-2" style="height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; display: none;">
+                    <div id="pw-bar" style="height: 100%; width: 0%; transition: var(--tr);"></div>
+                </div>
+                <div id="pw-text" style="font-size: 0.75rem; margin-top: 4px;"></div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label" style="color: var(--t2); font-size: 0.9rem;">Confirmer mot de passe*</label>
+                <div style="position: relative;">
+                    <i class="bi bi-shield-check" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--t3);"></i>
+                    <input type="password" name="confirm_password" required class="auth-input" placeholder="••••••••">
+                </div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label" style="color: var(--t2); font-size: 0.9rem;">Pays*</label>
+                <div style="position: relative;">
+                    <i class="bi bi-globe" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--t3);"></i>
+                    <select name="country" id="country-select" required class="auth-input auth-select">
+                        <option value="" disabled selected>Chargement des pays...</option>
+                    </select>
                 </div>
             </div>
 
-            <button type="submit" class="btn-primary w-100" style="padding: 12px; font-size: 1rem; margin-bottom: 1.5rem; width: 100%;">
-                S'inscrire
-            </button>
+            <!-- Location -->
+            <div class="col-md-6">
+                <label class="form-label" style="color: var(--t2); font-size: 0.9rem;">Ville*</label>
+                <div style="position: relative;">
+                    <i class="bi bi-geo-alt" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--t3);"></i>
+                    <select name="city" id="city-select" required class="auth-input auth-select">
+                        <option value="" disabled selected>Choisir un pays d'abord</option>
+                    </select>
+                </div>
+            </div>
+            
+
+            <!-- Usage and Plan -->
+            <div class="col-md-6">
+                <label class="form-label" style="color: var(--t2); font-size: 0.9rem;">Objectif d'utilisation*</label>
+                <select name="purpose_of_use" required class="auth-input auth-select no-icon">
+                    <option value="Accounting">Comptabilité</option>
+                    <option value="Invoice Management">Gestion de factures</option>
+                    <option value="Data Analytics">Analyse de données</option>
+                    <option value="Other">Autre</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label" style="color: var(--t2); font-size: 0.9rem;">Abonnement*</label>
+                <select name="subscription_type" required class="auth-input auth-select no-icon">
+                    <option value="Basic">Basic (Gratuit)</option>
+                    <option value="Pro">Pro (199 DT/mois)</option>
+                    <option value="Enterprise">Enterprise</option>
+                </select>
+            </div>
+
+            <div class="col-12">
+                <label class="form-label" style="color: var(--t2); font-size: 0.9rem;">Notes complémentaires</label>
+                <textarea name="additional_info" class="auth-input no-icon" rows="2" style="height: auto; padding-left: 1rem;"></textarea>
+            </div>
+
+            <div class="col-12 mt-5">
+                <button type="submit" class="btn-primary w-100" style="padding: 14px; font-size: 1rem;">
+                    Créer mon compte
+                </button>
+            </div>
         </form>
 
         <div style="text-align: center; font-size: 0.9rem; color: var(--t2);">
@@ -45,12 +123,121 @@
     </div>
 </div>
 
-<div id="toast" style="position: fixed; bottom: 2rem; right: 2rem; padding: 1rem 2rem; border-radius: var(--r2); color: #fff; display: none; z-index: 10000; box-shadow: 0 10px 30px rgba(0,0,0,0.5); transform: translateY(100px); transition: var(--tr);">
+<div id="toast" style="position: fixed; top: 2rem; left: 50%; transform: translateX(-50%) translateY(-50px); padding: 1.25rem 2rem; border-radius: 20px; color: #fff; display: none; z-index: 11001; box-shadow: 0 30px 60px rgba(0,0,0,0.5); transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); background: var(--card); border: 1px solid var(--border); min-width: 320px; text-align: center; font-weight: 500; opacity: 0;">
 </div>
+
+<style>
+    .auth-input {
+        width: 100%; 
+        background: rgba(255,255,255,0.05); 
+        border: 1px solid var(--border); 
+        border-radius: var(--r2); 
+        padding: 0.8rem 1rem 0.8rem 2.8rem; 
+        color: #fff; 
+        outline: none; 
+        transition: var(--tr);
+    }
+
+    /* Design Premium des Listes (Dropdowns) */
+    .auth-select {
+        appearance: none; /* Supprime le style natif du système */
+        background-color: rgba(255, 255, 255, 0.05);
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%236366f1' class='bi bi-chevron-down' viewBox='0 0 16 16'%3E%3Cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 1.2rem center;
+        background-size: 14px;
+        cursor: pointer;
+    }
+
+    .auth-select:focus {
+        border-color: var(--acc);
+        background-color: rgba(255, 255, 255, 0.08);
+        box-shadow: 0 0 15px rgba(99, 102, 241, 0.2);
+    }
+
+    /* Style des options (le menu qui s'ouvre) */
+    .auth-select option {
+        background-color: #1e1e2e; /* Correspond à var(--card) */
+        color: #fff;
+        padding: 12px;
+    }
+
+    .auth-input.no-icon {
+        padding-left: 1rem;
+    }
+</style>
 {% endblock %}
 
 {% block extra_js %}
 <script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Paramètres existants
+    const urlParams = new URLSearchParams(window.location.search);
+    const plan = urlParams.get('plan');
+    if (plan) {
+        const select = document.querySelector('select[name="subscription_type"]');
+        if (select) select.value = plan;
+    }
+
+    // Charger les pays
+    initLocationSelectors();
+});
+
+async function initLocationSelectors() {
+    const countrySelect = document.getElementById('country-select');
+    const citySelect = document.getElementById('city-select');
+
+    try {
+        const response = await fetch('https://countriesnow.space/api/v0.1/countries/info?returns=none');
+        const result = await response.json();
+        
+        if (!result.error) {
+            countrySelect.innerHTML = '<option value="" disabled>Choisir un pays...</option>';
+            result.data.sort((a, b) => a.name.localeCompare(b.name)).forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.name;
+                opt.textContent = c.name;
+                if (c.name === "Tunisia") opt.selected = true; // Par défaut
+                countrySelect.appendChild(opt);
+            });
+
+            // Charger les villes initiales pour la Tunisie
+            updateCities("Tunisia");
+        }
+    } catch (e) { console.error("Erreur pays:", e); }
+
+    countrySelect.addEventListener('change', (e) => updateCities(e.target.value));
+}
+
+async function updateCities(countryName) {
+    const citySelect = document.getElementById('city-select');
+    citySelect.innerHTML = '<option value="" disabled selected>Chargement des villes...</option>';
+    
+    try {
+        const response = await fetch('https://countriesnow.space/api/v0.1/countries/cities', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ country: countryName })
+        });
+        const result = await response.json();
+        
+        if (!result.error && result.data.length > 0) {
+            citySelect.innerHTML = '<option value="" disabled selected>Choisir une ville...</option>';
+            result.data.sort().forEach(city => {
+                const opt = document.createElement('option');
+                opt.value = city;
+                opt.textContent = city;
+                citySelect.appendChild(opt);
+            });
+        } else {
+            citySelect.innerHTML = `<option value="${countryName}">Ville principale</option>`;
+        }
+    } catch (e) { 
+        console.error("Erreur villes:", e);
+        citySelect.innerHTML = '<option value="" disabled>Indisponible</option>';
+    }
+}
+
 document.getElementById('register-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = e.target.querySelector('button');
@@ -94,13 +281,16 @@ function showToast(msg, bg) {
     const toast = document.getElementById('toast');
     toast.innerText = msg;
     toast.style.background = bg;
+    toast.style.borderBottom = `4px solid ${bg}`;
     toast.style.display = 'block';
     setTimeout(() => {
-        toast.style.transform = 'translateY(0)';
+        toast.style.transform = 'translateX(-50%) translateY(0)';
+        toast.style.opacity = '1';
     }, 10);
     
     setTimeout(() => {
-        toast.style.transform = 'translateY(100px)';
+        toast.style.transform = 'translateX(-50%) translateY(-50px)';
+        toast.style.opacity = '0';
         setTimeout(() => {
             toast.style.display = 'none';
         }, 300);
@@ -119,6 +309,44 @@ document.querySelectorAll('input').forEach(input => {
         input.style.borderColor = 'var(--border)';
         input.style.boxShadow = 'none';
     });
+});
+
+// Password Strength Logic
+const passwordInput = document.getElementById('register-password');
+const pwBar = document.getElementById('pw-bar');
+const pwText = document.getElementById('pw-text');
+const strengthContainer = document.querySelector('.pw-strength-container');
+
+passwordInput.addEventListener('input', () => {
+    const val = passwordInput.value;
+    if (val === '') {
+        strengthContainer.style.display = 'none';
+        pwText.textContent = '';
+        return;
+    }
+    strengthContainer.style.display = 'block';
+    
+    let strength = 0;
+    if (val.length >= 8) strength++;
+    if (/[A-Z]/.test(val)) strength++;
+    if (/[0-9]/.test(val)) strength++;
+
+    if (strength <= 1) {
+        pwBar.style.width = '33%';
+        pwBar.style.background = 'var(--err, #ef4444)';
+        pwText.textContent = 'Sécurité : Faible';
+        pwText.style.color = 'var(--err, #ef4444)';
+    } else if (strength === 2) {
+        pwBar.style.width = '66%';
+        pwBar.style.background = 'var(--warn, #f59e0b)';
+        pwText.textContent = 'Sécurité : Moyenne';
+        pwText.style.color = 'var(--warn, #f59e0b)';
+    } else {
+        pwBar.style.width = '100%';
+        pwBar.style.background = 'var(--ok, #10b981)';
+        pwText.textContent = 'Sécurité : Forte';
+        pwText.style.color = 'var(--ok, #10b981)';
+    }
 });
 </script>
 {% endblock %}

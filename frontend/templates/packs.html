@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}Nos Offres — FactuScan{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/pricing.css">
+<style>
+  /* 1. Change the background and border of all cards */
+  .pricing-card {
+    background: var(--card, #1e1e2e);
+    border: 1px solid var(--border, rgba(255,255,255,0.1));
+  }
+
+  /* 2. Customize the "Featured" (Pro) card highlight color */
+  .pricing-card.featured {
+    border-color: var(--acc, #6366f1);
+    box-shadow: 0 10px 40px rgba(99, 102, 241, 0.2);
+  }
+
+  /* 3. Change the badge color (e.g., "Le plus choisi") */
+  .pricing-badge {
+    background: var(--grad, linear-gradient(90deg, #6366f1, #a855f7));
+  }
+
+  /* 4. Customize button colors */
+  .pricing-btn-primary {
+    background: var(--grad);
+    border: none;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="pricing-hero">
+    <h1>Choisissez votre pack</h1>
+    <p>Des solutions adaptées à chaque besoin — de la startup à l'entreprise.</p>
+</div>
+
+<div class="country-toggle">
+    <button type="button" id="btn-fr" class="active" onclick="setCountry('fr')">🇫🇷 France (EUR)</button>
+    <button type="button" id="btn-tn" onclick="setCountry('tn')">🇹🇳 Tunisie (TND)</button>
+</div>
+
+<div class="pricing-grid">
+    {% for pack in packs %}
+    <div class="pricing-card {{ 'featured' if pack.is_featured }}">
+        {% if pack.is_featured %}<div class="pricing-badge">Le plus choisi</div>{% endif %}
+        <div class="pricing-header">
+            <div class="pricing-name">Pack {{ pack.name }}</div>
+            <div class="pricing-desc">{{ pack.description }}</div>
+            <div class="pricing-price" data-fr="{{ pack.price_eur }} €<span>/mois</span>" data-tn="{{ pack.price_tnd }} TND<span>/mois</span>">
+                {{ pack.price_eur }} €<span>/mois</span>
+            </div>
+            <div class="pricing-limit">{{ pack.limit_text }}</div>
+        </div>
+        <ul class="pricing-features">
+            {% for feature in pack.features %}
+            <li><i class="bi bi-check-circle-fill"></i> {{ feature }}</li>
+            {% endfor %}
+        </ul>
+        <a href="/register?plan={{ pack.name }}" class="pricing-btn {{ 'pricing-btn-primary' if pack.is_featured else 'pricing-btn-secondary' }} text-center d-block" style="text-decoration: none;">Choisir {{ pack.name }}</a>
+    </div>
+    {% endfor %}
+</div>
+
+<div style="max-width: 800px; margin: 3rem auto; padding: 0 2rem; text-align: center;">
+    <p style="color: var(--t3); font-size: 0.85rem;">
+        <i class="bi bi-shield-check"></i> Paiement sécurisé via Stripe · Annulation à tout moment · Pas de frais cachés
+    </p>
+</div>
+
+<script>
+function setCountry(code) {
+    document.querySelectorAll('.country-toggle button').forEach(b => b.classList.remove('active'));
+    document.getElementById('btn-' + code).classList.add('active');
+
+    document.querySelectorAll('.pricing-price').forEach(el => {
+        el.innerHTML = el.getAttribute('data-' + code);
+    });
+}
+</script>
+{% endblock %}

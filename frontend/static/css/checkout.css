@@ -1,0 +1,38 @@
+.checkout-container {
+    max-width: 900px;
+    margin: 4rem auto;
+    padding: 0 1rem;
+}
+
+.checkout-card {
+    border: none;
+    border-radius: var(--r3, 20px);
+    overflow: hidden;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+    background: var(--card, #1e1e2e);
+    color: #fff;
+}
+
+.summary-section {
+    background: rgba(99, 102, 241, 0.05);
+    padding: 2.5rem;
+    border-right: 1px solid var(--border, rgba(255,255,255,0.1));
+}
+
+.pack-badge {
+    display: inline-block;
+    padding: 0.5rem 1.2rem;
+    background: var(--grad);
+    border-radius: 30px;
+    font-weight: bold;
+}
+
+.feature-list li {
+    margin-bottom: 0.8rem;
+    color: var(--t2, #a0a0ba);
+}
+
+.feature-list i {
+    color: var(--acc, #6366f1);
+    margin-right: 8px;
+}

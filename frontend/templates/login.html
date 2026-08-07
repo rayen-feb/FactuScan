@@ -39,13 +39,27 @@
             </button>
         </form>
 
+        <div class="divider" style="text-align: center; margin: 1.5rem 0; color: var(--t3); position: relative;">
+            <span style="background: var(--card); padding: 0 10px; position: relative; z-index: 1;">OU</span>
+            <hr style="position: absolute; top: 50%; width: 100%; border-color: var(--border); margin: 0;">
+        </div>
+
+        <div class="social-logins" style="display: flex; flex-direction: column; gap: 0.8rem; margin-bottom: 2rem;">
+            <a href="/login/google" class="btn-secondary w-100" style="text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 10px; background: #ffffff; color: #1e1e2e; border: 1px solid rgba(0,0,0,0.1); font-weight: 600;">
+                <i class="bi bi-google"></i> Continuer avec Google
+            </a>
+            <a href="#" class="btn-secondary w-100 opacity-50" style="text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: not-allowed;">
+                <i class="bi bi-microsoft"></i> Microsoft (Bientôt disponible)
+            </a>
+        </div>
+
         <div style="text-align: center; font-size: 0.9rem; color: var(--t2);">
             Pas encore de compte ? <a href="/register" style="color: var(--acc); text-decoration: none; font-weight: 600;">Inscrivez-vous</a>
         </div>
     </div>
 </div>
 
-<div id="toast" style="position: fixed; bottom: 2rem; right: 2rem; padding: 1rem 2rem; border-radius: var(--r2); color: #fff; display: none; z-index: 10000; box-shadow: 0 10px 30px rgba(0,0,0,0.5); transform: translateY(100px); transition: var(--tr);">
+<div id="toast" style="position: fixed; top: 2rem; left: 50%; transform: translateX(-50%) translateY(-50px); padding: 1.25rem 2rem; border-radius: 20px; color: #fff; display: none; z-index: 11001; box-shadow: 0 30px 60px rgba(0,0,0,0.5); transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); background: var(--card); border: 1px solid var(--border); min-width: 320px; text-align: center; font-weight: 500; opacity: 0;">
 </div>
 {% endblock %}
 
@@ -93,14 +107,16 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
 function showToast(msg, bg) {
     const toast = document.getElementById('toast');
     toast.innerText = msg;
-    toast.style.background = bg;
+    toast.style.borderBottom = `4px solid ${bg}`;
     toast.style.display = 'block';
     setTimeout(() => {
-        toast.style.transform = 'translateY(0)';
+        toast.style.transform = 'translateX(-50%) translateY(0)';
+        toast.style.opacity = '1';
     }, 10);
     
     setTimeout(() => {
-        toast.style.transform = 'translateY(100px)';
+        toast.style.transform = 'translateX(-50%) translateY(-50px)';
+        toast.style.opacity = '0';
         setTimeout(() => {
             toast.style.display = 'none';
         }, 300);

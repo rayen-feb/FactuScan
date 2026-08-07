@@ -97,11 +97,11 @@
     </div>
     <div class="stat-card">
         <h3>Total TTC</h3>
-        <p id="stTtc" style="color: var(--ok);">0.00 DH</p>
+        <p id="stTtc" style="color: var(--ok);">0.00 DT</p>
     </div>
     <div class="stat-card">
         <h3>Total TVA</h3>
-        <p id="stTva" style="color: var(--warn);">0.00 DH</p>
+        <p id="stTva" style="color: var(--warn);">0.00 DT</p>
     </div>
 </div>
 
@@ -118,7 +118,7 @@
                     <th>Fournisseur</th>
                     <th>ICE</th>
                     <th>Date</th>
-                    <th>Montant TTC (DH)</th>
+                    <th>Montant TTC (DT)</th>
                     <th style="text-align: right;">Action</th>
                 </tr>
             </thead>
@@ -134,20 +134,28 @@
 
 {% block extra_js %}
 <script>
-    let historyData = JSON.parse(localStorage.getItem('fs-history') || '[]');
+    let historyData = [];
 
-    function renderDashboard() {
+    async function loadDashboard() {
         let sumTtc = 0;
         let sumTva = 0;
-
+        
+        try {
+            const res = await fetch('/api/invoices');
+            historyData = await res.json();
+        } catch (e) {
+            console.error("Erreur de chargement:", e);
+            historyData = [];
+        }
+        
         historyData.forEach(d => {
             sumTtc += (d.total_amount || 0);
             sumTva += (d.vat_amount || 0);
         });
 
         document.getElementById('stCount').textContent = historyData.length;
-        document.getElementById('stTtc').textContent = sumTtc.toLocaleString('fr-MA', { minimumFractionDigits: 2 }) + ' DH';
-        document.getElementById('stTva').textContent = sumTva.toLocaleString('fr-MA', { minimumFractionDigits: 2 }) + ' DH';
+        document.getElementById('stTtc').textContent = sumTtc.toLocaleString('fr-TN', { minimumFractionDigits: 2 }) + ' DT';
+        document.getElementById('stTva').textContent = sumTva.toLocaleString('fr-TN', { minimumFractionDigits: 2 }) + ' DT';
 
         const tbody = document.getElementById('tblBody');
         if (historyData.length === 0) {
@@ -161,19 +169,24 @@
                 <td style="font-weight: 600;">${d.supplier || '—'}</td>
                 <td>${d.ice || '—'}</td>
                 <td>${d.invoice_date || '—'}</td>
-                <td style="color: var(--ok); font-weight: 700;">${d.total_amount ? d.total_amount.toFixed(2) + ' DH' : '—'}</td>
+                <td style="color: var(--ok); font-weight: 700;">${d.total_amount ? d.total_amount.toFixed(2) + ' DT' : '—'}</td>
                 <td style="text-align: right;">
-                    <button class="btn-secondary" onclick="deleteHistoryItem(${index})" style="padding: 6px 12px; color: var(--err); border-color: rgba(239,68,68,0.2);">Supprimer</button>
+                    <button class="btn-secondary" onclick="deleteHistoryItem(${d.id})" style="padding: 6px 12px; color: var(--err); border-color: rgba(239,68,68,0.2);">Supprimer</button>
                 </td>
             </tr>
         `).join('');
     }
 
-    function deleteHistoryItem(idx) {
+    async function deleteHistoryItem(id) {
         if (confirm("Supprimer cette facture ?")) {
-            historyData.splice(idx, 1);
-            localStorage.setItem('fs-history', JSON.stringify(historyData));
-            renderDashboard();
+            try {
+                const res = await fetch(`/invoices/${id}`, { method: 'DELETE' });
+                if (res.ok) {
+                    loadDashboard();
+                } else {
+                    alert("Erreur lors de la suppression.");
+                }
+            } catch (e) { alert("Erreur réseau."); }
         }
     }
 
@@ -197,6 +210,6 @@
         a.click();
     }
 
-    renderDashboard();
+    loadDashboard();
 </script>
 {% endblock %}

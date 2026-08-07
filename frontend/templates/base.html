@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- SEO Meta Tags -->
     <meta name="description"
-        content="FactuScan - Extraction intelligente de factures marocaines. Automatisez votre comptabilité avec l'IA et l'OCR (Français/Arabe).">
+        content="FactuScan - Extraction intelligente de factures tunisiennes. Automatisez votre comptabilité avec l'IA et l'OCR (Français/Arabe).">
     <meta name="keywords" content="Facturation, OCR, Maroc, IA, Comptabilité, Extraction de données, ICE">
     <meta name="author" content="FactuScan Team">
     <title>{% block title %}FactuScan — Extraction Intelligente de Factures{% endblock %}</title>
@@ -26,6 +26,53 @@
 </head>
 
 <body>
+    <!-- Système de Notifications Global (Style Pop-up Premium) -->
+    <div id="flash-notification-container" style="position: fixed; top: 2rem; left: 50%; transform: translateX(-50%); z-index: 11000; width: 90%; max-width: 420px; pointer-events: none;">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="flash-popup card" style="pointer-events: auto; background: rgba(30, 30, 46, 0.95); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 1.25rem 1.5rem; color: #fff; box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5); display: flex; align-items: center; gap: 15px; margin-bottom: 1rem; transform: translateY(-30px); opacity: 0; animation: flashPopIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; border-left: 6px solid {% if category == 'success' %}#10b981{% elif category == 'danger' or category == 'error' %}#ef4444{% elif category == 'warning' %}#f59e0b{% else %}#6366f1{% endif %};">
+                <div style="width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.05); flex-shrink: 0; font-size: 1.2rem;">
+                    {% if category == 'success' %}
+                        <i class="bi bi-check-circle-fill" style="color: #10b981;"></i>
+                    {% elif category == 'danger' or category == 'error' %}
+                        <i class="bi bi-x-circle-fill" style="color: #ef4444;"></i>
+                    {% elif category == 'warning' %}
+                        <i class="bi bi-exclamation-triangle-fill" style="color: #f59e0b;"></i>
+                    {% else %}
+                        <i class="bi bi-info-circle-fill" style="color: #6366f1;"></i>
+                    {% endif %}
+                </div>
+                <div style="flex-grow: 1;">
+                    <div style="font-weight: 700; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.6; margin-bottom: 2px;">
+                        {{ 'Succès' if category == 'success' else 'Attention' if category == 'warning' else 'Erreur' if (category == 'danger' or category == 'error') else 'Notification' }}
+                    </div>
+                    <div style="font-weight: 500; font-size: 1rem;">{{ message }}</div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" style="font-size: 0.7rem; opacity: 0.4; margin-left: 10px;" onclick="closeFlash(this.parentElement)"></button>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+    </div>
+
+    <style>
+        @keyframes flashPopIn { to { transform: translateY(0); opacity: 1; } }
+        .flash-popup.hiding { transform: scale(0.9) translateY(-20px); opacity: 0; transition: 0.4s ease; }
+    </style>
+
+    <script>
+        function closeFlash(el) {
+            el.classList.add('hiding');
+            setTimeout(() => el.remove(), 400);
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.flash-popup').forEach(el => {
+                setTimeout(() => closeFlash(el), 6000); // Fermeture auto après 6s
+            });
+        });
+    </script>
+
     <div class="wrap">
         <nav>
             <a href="/" class="brand">
@@ -37,8 +84,16 @@
 
             <div class="nav-links">
                 <a href="/" class="nav-link {% if request.path == '/' %}active{% endif %}">Accueil</a>
+                <a href="/packs" class="nav-link {% if request.path == '/packs' %}active{% endif %}">Tarifs</a>
                 {% if current_user.is_authenticated %}
+                {% if current_user.role != 'admin' %}
                 <a href="/dashboard" class="nav-link {% if request.path == '/dashboard' %}active{% endif %}">Mon Espace</a>
+                <a href="/scanner" class="nav-link {% if request.path == '/scanner' %}active{% endif %}">Scanner</a>
+                <a href="/reclamation" class="nav-link {% if request.path == '/reclamation' %}active{% endif %}">Réclamation</a>
+                {% endif %}
+                {% if current_user.role == 'admin' %}
+                <a href="/admin/dashboard" class="nav-link {% if request.path == '/admin/dashboard' or request.path == '/admin' %}active{% endif %}">Admin</a>
+                {% endif %}
                 {% else %}
                 <a href="/about" class="nav-link">À propos</a>
                 <a href="/docs" class="nav-link">Documentation</a>
@@ -47,13 +102,20 @@
 
             <div class="nav-actions">
                 {% if current_user.is_authenticated %}
-                <div class="user-info" style="margin-right: 1rem; color: var(--t2); font-size: 0.9rem;">
-                    <i class="bi bi-person-circle"></i> {{ current_user.username }}
-                </div>
+                <a href="{{ url_for('profile') }}" class="user-info" style="margin-right: 1rem; color: var(--t2); font-size: 0.9rem; text-decoration: none; transition: var(--tr); cursor: pointer;">
+                    {% if current_user.profile_image and current_user.profile_image != 'default_avatar.png' %}
+                    <img src="{{ url_for('static', filename='uploads/profiles/' + current_user.profile_image) }}" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover; border: 1px solid var(--border);">
+                    {% else %}
+                    <img src="https://ui-avatars.com/api/?name={{ (current_user.full_name or current_user.username)|urlencode }}&size=24&background=6366f1&color=fff" style="width: 24px; height: 24px; border-radius: 50%;">
+                    {% endif %}
+                    <span>{{ current_user.username }} <small style="opacity: 0.7;">({{ current_user.subscription_type }})</small></span>
+                </a>
                 <button id="voice-assistant-btn" class="btn-secondary" title="Assistant Vocal">
                     <i class="bi bi-mic-fill"></i>
-                </button>
+                </button> 
+                {% if current_user.role != 'admin' %}
                 <a href="/scanner" class="btn-primary">Scanner</a>
+                {% endif %}
                 <a href="/logout" class="btn-secondary" title="Se déconnecter">
                     <i class="bi bi-box-arrow-right"></i>
                 </a>
@@ -72,15 +134,21 @@
             <div class="footer-content">
                 <div class="footer-brand">
                     <h2>Factu<span>Scan</span></h2>
-                    <p>La solution intelligente pour l'extraction et l'analyse de factures au Maroc. Gain de temps et
-                        précision garantie grâce à l'intelligence artificielle.</p>
+                    <p>La solution intelligente pour l'extraction et l'analyse de factures en Tunisie.</p>
+                    <div class="social-icons fs-4 mt-3">
+                        <a href="#" class="me-3 text-white opacity-75" title="LinkedIn"><i class="bi bi-linkedin"></i></a>
+                        <a href="#" class="me-3 text-white opacity-75" title="Twitter"><i class="bi bi-twitter-x"></i></a>
+                        <a href="#" class="text-white opacity-75" title="Facebook"><i class="bi bi-facebook"></i></a>
+                    </div>
                 </div>
                 <div class="footer-links">
                     <h4>Produit</h4>
                     <ul>
                         <li><a href="/#features">Fonctionnalités</a></li>
                         <li><a href="/docs">Documentation</a></li>
-                        <li><a href="/dashboard">Application</a></li>
+                        <li><a href="/packs">Tarifs &amp; Packs</a></li>
+                        <li><a href="/login">Connexion</a></li>
+                        <li><a href="/register">S'inscrire</a></li>
                     </ul>
                 </div>
                 <div class="footer-links">
@@ -100,7 +168,7 @@
                 </div>
             </div>
             <div class="footer-bottom">
-                <p>&copy; 2024 FactuScan. Tous droits réservés. Développé avec passion pour les entreprises marocaines.
+                <p>&copy; 2024 FactuScan. Tous droits réservés. Développé avec passion pour les entreprises tunisiennes.
                 </p>
             </div>
         </footer>

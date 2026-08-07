@@ -1,0 +1,283 @@
+{% extends "base.html" %}
+
+{% block title %}Mon Profil — FactuScan{% endblock %}
+
+{% block content %}
+<div class="auth-container" style="padding: 2rem; max-width: 1000px; margin: 0 auto;">
+    <div class="row g-4">
+        <!-- Profile Card -->
+        <div class="col-lg-4">
+            <div class="card auth-card text-center p-4" style="position: sticky; top: 2rem;">
+                <div class="profile-img-container position-relative d-inline-block mx-auto mb-4">
+                    <img id="profile-img-preview" 
+                         src="{{ url_for('static', filename='uploads/profiles/' + (current_user.profile_image or 'default_avatar.png')) if current_user.profile_image and current_user.profile_image != 'default_avatar.png' else 'https://ui-avatars.com/api/?name=' + (current_user.full_name or current_user.username)|urlencode + '&background=6366f1&color=fff' }}" 
+                         class="rounded-circle border border-4 shadow-lg" style="width: 140px; height: 120px; object-fit: cover; border-color: var(--acc) !important;">
+                    <label for="profile_image_input" class="position-absolute bottom-0 end-0 bg-primary text-white rounded-circle p-2 shadow" style="cursor: pointer; transform: translate(5px, 5px); transition: var(--tr);">
+                        <i class="bi bi-camera-fill"></i>
+                    </label>
+                    <input type="file" id="profile_image_input" hidden accept="image/*">
+                </div>
+                <h4 class="mb-1 text-white" style="font-weight: 700;">{{ current_user.username }}</h4>
+                <div class="d-flex justify-content-center gap-2 mb-4">
+                    <span class="badge bg-opacity-10 bg-info text-info p-2 px-3" style="border-radius: 20px; font-size: 0.75rem;">
+                        <i class="bi bi-patch-check-fill me-1"></i> {{ current_user.subscription_type }}
+                    </span>
+                    <span class="badge bg-opacity-10 bg-success text-success p-2 px-3" style="border-radius: 20px; font-size: 0.75rem;">
+                        <i class="bi bi-shield-lock-fill me-1"></i> {{ current_user.role|capitalize }}
+                    </span>
+                </div>
+                
+                <div class="account-overview text-start bg-white bg-opacity-5 p-3 rounded-4 mb-4">
+                    <h6 class="text-muted small text-uppercase fw-bold mb-3" style="letter-spacing: 1px;">Vue d'ensemble</h6>
+                    <div class="d-flex flex-column gap-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted small">Inscrit le</span>
+                            <span class="text-white small">{{ current_user.created_at.strftime('%d %b %Y') if current_user.created_at else 'N/A' }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted small">Factures</span>
+                            <span class="text-white small fw-bold" id="quick-invoice-count">—</span>
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="border-secondary my-3">
+                <div class="text-start">
+                    <p class="small text-muted mb-2">Activité récente</p>
+                    <p class="small text-white mb-2"><i class="bi bi-clock-history me-2 text-primary"></i>Dernière connexion: {{ current_user.last_login.strftime('%d/%m %H:%M') if current_user.last_login else 'N/A' }}</p>
+                    <p class="small text-white"><i class="bi bi-file-earmark-arrow-up me-2"></i>Dernier scan: {{ last_invoice.created_at.strftime('%d/%m/%Y') if last_invoice else 'Aucun' }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit Info & Messages -->
+        <div class="col-lg-8">
+            <!-- Navigation Tabs -->
+            <ul class="nav nav-pills mb-4 gap-2" id="profile-tabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active rounded-pill px-4 py-2 border border-secondary" id="account-tab" data-bs-toggle="pill" data-bs-target="#tab-account" type="button" role="tab">
+                        <i class="bi bi-person-fill-gear me-2"></i>Paramètres du Compte
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link rounded-pill px-4 py-2 border border-secondary" id="support-tab" data-bs-toggle="pill" data-bs-target="#tab-support" type="button" role="tab">
+                        <i class="bi bi-headset me-2"></i>Support & Aide
+                    </button>
+                </li>
+            </ul>
+
+            <div class="tab-content" id="profile-tabs-content">
+                <!-- Tab: Account Settings -->
+                <div class="tab-pane fade show active" id="tab-account" role="tabpanel">
+                    <div class="card auth-card p-4">
+                        <h5 class="text-white mb-4">Informations Personnelles</h5>
+                        <form method="POST" class="row g-4">
+                            <div class="col-md-6">
+                                <label class="form-label text-muted small fw-bold">Nom Complet / Entreprise</label>
+                                <input type="text" name="full_name" class="auth-input no-icon" value="{{ current_user.full_name }}" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label text-muted small fw-bold">Nom de l'entreprise (Optionnel)</label>
+                                <input type="text" name="company_name" class="auth-input no-icon" value="{{ current_user.company_name }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label text-muted small fw-bold">Email</label>
+                                <input type="email" class="auth-input no-icon" value="{{ current_user.email }}" disabled style="opacity: 0.6; cursor: not-allowed;">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label text-muted small fw-bold">Objectif d'utilisation</label>
+                                <select name="purpose_of_use" class="auth-input auth-select no-icon">
+                                    <option value="Accounting" {% if current_user.purpose_of_use == 'Accounting' %}selected{% endif %}>Comptabilité</option>
+                                    <option value="Invoice Management" {% if current_user.purpose_of_use == 'Invoice Management' %}selected{% endif %}>Gestion de factures</option>
+                                    <option value="Data Analytics" {% if current_user.purpose_of_use == 'Data Analytics' %}selected{% endif %}>Analyse de données</option>
+                                    <option value="Other" {% if current_user.purpose_of_use == 'Other' %}selected{% endif %}>Autre</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label text-muted small fw-bold">Ville</label>
+                                <input type="text" name="city" class="auth-input no-icon" value="{{ current_user.city }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label text-muted small fw-bold">Pays</label>
+                                <input type="text" name="country" class="auth-input no-icon" value="{{ current_user.country }}">
+                            </div>
+                            <div class="col-12 mt-5">
+                                <button type="submit" class="btn-primary" style="padding: 12px 35px; min-width: 200px;">
+                                    <i class="bi bi-check2-circle me-2"></i>Enregistrer les modifications
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Tab: Support & Messages -->
+                <div class="tab-pane fade" id="tab-support" role="tabpanel">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <div class="card auth-card p-4 h-100">
+                                <h5 class="text-white mb-4">Nouveau Ticket</h5>
+                                <div class="form-group mb-3">
+                                    <label class="text-muted small fw-bold mb-2">Sujet</label>
+                                    <input type="text" id="msg-subject" class="auth-input no-icon" placeholder="Ex: Problème de paiement">
+                                </div>
+                                <div class="form-group mb-4">
+                                    <label class="text-muted small fw-bold mb-2">Message</label>
+                                    <textarea id="msg-body" class="auth-input no-icon" rows="5" placeholder="Décrivez votre demande en détail..."></textarea>
+                                </div>
+                                <button onclick="sendMessage()" class="btn-primary w-100">
+                                    <i class="bi bi-send me-2"></i>Envoyer le message
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card auth-card p-4 h-100">
+                                <h5 class="text-white mb-4">Historique des demandes</h5>
+                                <div class="notification-list" style="max-height: 400px; overflow-y: auto; padding-right: 5px;">
+                                    {% for msg in messages %}
+                                    <div class="support-ticket p-3 mb-3 rounded-4 bg-white bg-opacity-5 border border-secondary transition-all" style="cursor: pointer;">
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <strong class="text-white d-block text-truncate" style="max-width: 70%;">{{ msg.subject }}</strong>
+                                            <span class="badge {% if msg.status == 'resolved' %}bg-success{% else %}bg-warning{% endif %} bg-opacity-10 text-{% if msg.status == 'resolved' %}success{% else %}warning{% endif %}" style="font-size: 0.65rem;">
+                                                {{ msg.status|upper }}
+                                            </span>
+                                        </div>
+                                        <p class="mb-2 text-muted small text-truncate-2">{{ msg.body }}</p>
+                                        {% if msg.reply %}
+                                        <div class="reply-box mt-2 p-2 bg-primary bg-opacity-10 rounded border-start border-3 border-primary small">
+                                            <span class="text-primary fw-bold">Admin:</span> {{ msg.reply }}
+                                        </div>
+                                        {% endif %}
+                                        <div class="text-muted mt-3" style="font-size: 0.7rem;">
+                                            <i class="bi bi-calendar-event me-1"></i>{{ msg.timestamp.strftime('%d %b, %H:%M') }}
+                                        </div>
+                                    </div>
+                                    {% else %}
+                                    <div class="text-center py-5">
+                                        <i class="bi bi-chat-left-dots text-muted opacity-25" style="font-size: 3rem;"></i>
+                                        <p class="text-muted small mt-3">Aucune demande enregistrée.</p>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .auth-input {
+        width: 100%; 
+        background: rgba(255,255,255,0.05); 
+        border: 1px solid var(--border); 
+        border-radius: var(--r2); 
+        padding: 0.8rem 1rem; 
+        color: #fff; 
+        outline: none; 
+        transition: var(--tr);
+    }
+    .auth-input:focus, .auth-input:active {
+        border-color: var(--acc);
+        background: rgba(255,255,255,0.1);
+        box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.1);
+    }
+    .auth-select option {
+        background-color: #1a1a1a;
+        color: white;
+    }
+    .nav-pills .nav-link {
+        color: var(--t2);
+        background: transparent;
+        font-weight: 500;
+        transition: var(--tr);
+    }
+    .nav-pills .nav-link.active {
+        background: var(--grad) !important;
+        color: #fff !important;
+        border-color: transparent !important;
+    }
+    .support-ticket:hover {
+        background: rgba(255,255,255,0.08);
+        transform: translateX(3px);
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+    // Fetch real stats for the overview
+    try {
+        const res = await fetch('/invoices');
+        const invoices = await res.json();
+        document.getElementById('quick-invoice-count').textContent = invoices.length;
+    } catch (e) { document.getElementById('quick-invoice-count').textContent = '0'; }
+});
+
+document.getElementById('profile_image_input').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('profile_image', file);
+
+    try {
+        const response = await fetch('/profile/upload-image', {
+            method: 'POST',
+            body: formData
+        });
+        const result = await response.json();
+        if (response.ok) {
+            document.getElementById('profile-img-preview').src = `{{ url_for('static', filename='uploads/profiles/') }}${result.filename}`;
+            showToast('Photo de profil mise à jour', 'var(--ok)');
+        } else {
+            showToast(result.error, 'var(--err)');
+        }
+    } catch (err) {
+        showToast('Erreur lors du téléchargement', 'var(--err)');
+    }
+});
+
+async function sendMessage() {
+    const subject = document.getElementById('msg-subject').value;
+    const body = document.getElementById('msg-body').value;
+
+    if (!subject || !body) return showToast('Veuillez remplir tous les champs', 'var(--err)');
+
+    try {
+        const response = await fetch('/profile/send-message', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({subject, body})
+        });
+        const result = await response.json();
+        if (response.ok) {
+            showToast(result.message, 'var(--ok)');
+            document.getElementById('msg-subject').value = '';
+            document.getElementById('msg-body').value = '';
+        }
+    } catch (err) {
+        showToast('Erreur réseau', 'var(--err)');
+    }
+}
+
+function showToast(msg, bg) {
+    const toast = document.getElementById('toast');
+    toast.innerText = msg;
+    toast.style.background = bg;
+    toast.style.display = 'block';
+    setTimeout(() => {
+        toast.style.transform = 'translateY(0)';
+    }, 10);
+    
+    setTimeout(() => {
+        toast.style.transform = 'translateY(100px)';
+        setTimeout(() => {
+            toast.style.display = 'none';
+        }, 300);
+    }, 4000);
+}
+</script>
+{% endblock %}

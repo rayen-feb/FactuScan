@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Checkout — FactuScan{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/checkout.css">
+{% endblock %}
+
+{% block content %}
+<div class="checkout-container">
+    <div class="checkout-card card">
+        <div class="row g-0">
+            <!-- Summary Side -->
+            <div class="col-md-5 summary-section">
+                <h3>Résumé de la commande</h3>
+                <div class="pack-badge mb-3">{{ pack_name }}</div>
+                <ul class="feature-list list-unstyled">
+                    {% for feature in features %}
+                    <li><i class="bi bi-check2-circle"></i> {{ feature }}</li>
+                    {% endfor %}
+                </ul>
+                <hr>
+                <div class="price-display">
+                    <div class="price-item d-flex justify-content-between">
+                        <span>France :</span>
+                        <strong>{{ prices.fr }}</strong>
+                    </div>
+                    <div class="price-item d-flex justify-content-between mt-2">
+                        <span>Tunisie :</span>
+                        <strong>{{ prices.tn }}</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Side -->
+            <div class="col-md-7 form-section p-4">
+                <h4 class="mb-4">Informations de facturation</h4>
+                <form action="/create_payment" method="POST">
+                    <input type="hidden" name="pack" value="{{ pack_name }}">
+                    
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email de contact</label>
+                        <input type="email" name="email" id="email" class="form-control" value="{{ current_user.username }}" required>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="country" class="form-label">Pays de résidence</label>
+                        <select name="country" id="country" class="form-select" required>
+                            <option value="fr" selected>🇫🇷 France (EUR)</option>
+                            <option value="tn">🇹🇳 Tunisie (TND)</option>
+                        </select>
+                        <div class="form-text mt-2 text-muted">
+                            <i class="bi bi-info-circle"></i> Le montant sera converti selon le pays choisi.
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 py-3">Procéder au paiement sécurisé</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
