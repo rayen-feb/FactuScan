@@ -1,10 +1,101 @@
+# =====================================================================
+#  SECRETS & ENVIRONMENT FILES (NEVER COMMIT THESE)
+# =====================================================================
+.env
+*.env
+.env.local
+.env.*.local
+.env.production
+.env.development
+backend/.env
+!*.env.example
+
+# =====================================================================
+#  Python / Flask
+# =====================================================================
 __pycache__/
 *.py[cod]
 *$py.class
-.env
-uploads/
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+
+# =====================================================================
+#  Database files (SQLite)
+# =====================================================================
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
 mysql_data/
-.vscode/
+
+# =====================================================================
+#  IDE / Editors
+# =====================================================================
 .idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# =====================================================================
+#  Logs & Caches
+# =====================================================================
 *.log
-factuscan.db
+logs/
+*.pid
+*.seed
+*.pid.lock
+cache/
+*.cache
+
+# =====================================================================
+#  Uploads & runtime data
+# =====================================================================
+uploads/
+static/uploads/
+*.mp4
+*.mp3
+
+# =====================================================================
+#  Testing / Coverage
+# =====================================================================
+.pytest_cache/
+.coverage
+.tox/
+htmlcov/
+nosetests.xml
+coverage.xml
+*.h5
+*.hdf5
+
+# =====================================================================
+#  Frontend build artifacts
+# =====================================================================
+node_modules/
+frontend/static/adminlte/
+admin/AdminLTE/dist/
+admin/AdminLTE/vendor/
