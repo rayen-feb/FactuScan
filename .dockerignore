@@ -14,3 +14,7 @@ docker/
 *.log
 *.sqlite
 node_modules
+factuscan-backup.git/
+admin/
+pricing-plus/
+*.md

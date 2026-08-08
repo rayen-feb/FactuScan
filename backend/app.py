@@ -368,21 +368,20 @@ if DB_AVAILABLE:
 # Disable oneDNN to avoid NotImplementedError on Windows with newer Paddle builds
 os.environ['FLAGS_use_mkldnn'] = '0'
 
-# Initialize PaddleOCR structure support
+# ================================================================
+# LAZY PaddleOCR initialization for memory-constrained deploys
+# ================================================================
+# PaddleOCR downloads and loads several large models (~10MB each) at
+# init time. On Render/HuggingFace free tiers (512MB RAM) this caused
+# OOM kills (`Exited with status 137`) and the app never bound a port.
+#
+# Fix: initialize the models LAZILY the first time a scan is requested,
+# not at import time. Set EAGER_OCR=1 to restore the old behavior
+# (e.g. for local dev where memory is not a concern).
+# ================================================================
 paddle_ocr_reader = None
 pp_structure_analyzer = None
-
-# ✅ OCR (text extraction) - Initialize independently for fallback
-try:
-    paddle_ocr_reader = PaddleOCR(
-        lang="fr",
-        use_angle_cls=True,  # stable & safe
-        show_log=False
-    )
-    print("[SYSTEM] PaddleOCR reader initialized.")
-except Exception as e:
-    print(f"[ERROR] PaddleOCR reader init failed: {e}")
-    paddle_ocr_reader = None
+_paddle_init_attempted = False
 
 # Determine the structure class available in this PaddleOCR version
 paddle_structure_class = None
@@ -391,27 +390,57 @@ if PPStructureV3 is not None:
 elif PPStructure is not None:
     paddle_structure_class = PPStructure
 
-# ✅ Structure (tables/layout) - PPStructureV3 or PPStructure
-if paddle_structure_class is not None:
-    structure_lang = "en"
-    try:
-        pp_structure_analyzer = paddle_structure_class(
-            show_log=False,
-            lang=structure_lang
-        )
-        print(f"[SYSTEM] {paddle_structure_class.__name__} initialized successfully with lang='{structure_lang}'.")
-    except Exception as e:
-        print(f"[WARNING] {paddle_structure_class.__name__} init with lang='{structure_lang}' failed: {e}")
+
+def init_paddle_ocr():
+    """Initialize PaddleOCR readers lazily (first call) and cache them."""
+    global paddle_ocr_reader, pp_structure_analyzer, _paddle_init_attempted
+    if _paddle_init_attempted:
+        return paddle_ocr_reader is not None or pp_structure_analyzer is not None
+    _paddle_init_attempted = True
+
+    # ✅ OCR (text extraction) - Initialize independently for fallback
+    if PaddleOCR is not None:
         try:
-            pp_structure_analyzer = paddle_structure_class(
+            paddle_ocr_reader = PaddleOCR(
+                lang="fr",
+                use_angle_cls=True,  # stable & safe
                 show_log=False
             )
-            print(f"[SYSTEM] {paddle_structure_class.__name__} initialized successfully without explicit lang.")
-        except Exception as e2:
-            print(f"[ERROR] {paddle_structure_class.__name__} init without lang failed: {e2}")
-            pp_structure_analyzer = None
+            print("[SYSTEM] PaddleOCR reader initialized.")
+        except Exception as e:
+            print(f"[ERROR] PaddleOCR reader init failed: {e}")
+            paddle_ocr_reader = None
+
+    # ✅ Structure (tables/layout) - PPStructureV3 or PPStructure
+    if paddle_structure_class is not None:
+        structure_lang = "en"
+        try:
+            pp_structure_analyzer = paddle_structure_class(
+                show_log=False,
+                lang=structure_lang
+            )
+            print(f"[SYSTEM] {paddle_structure_class.__name__} initialized successfully with lang='{structure_lang}'.")
+        except Exception as e:
+            print(f"[WARNING] {paddle_structure_class.__name__} init with lang='{structure_lang}' failed: {e}")
+            try:
+                pp_structure_analyzer = paddle_structure_class(
+                    show_log=False
+                )
+                print(f"[SYSTEM] {paddle_structure_class.__name__} initialized successfully without explicit lang.")
+            except Exception as e2:
+                print(f"[ERROR] {paddle_structure_class.__name__} init without lang failed: {e2}")
+                pp_structure_analyzer = None
+    else:
+        print("[WARNING] No paddleocr PPStructureV3 or PPStructure class available for structured OCR.")
+
+    return paddle_ocr_reader is not None or pp_structure_analyzer is not None
+
+
+# Eager init for local development (optional). Off by default for production.
+if os.environ.get('EAGER_OCR', '').lower() in ('1', 'true', 'yes'):
+    init_paddle_ocr()
 else:
-    print("[WARNING] No paddleocr PPStructureV3 or PPStructure class available for structured OCR.")
+    print("[SYSTEM] PaddleOCR initialized lazily (models load on first scan).")
 
 
 
@@ -961,6 +990,9 @@ def process_with_paddleocr(filepath, file_type):
     full_raw_text = ""
     html_blocks = []
     error_messages = []
+
+    # Ensure PaddleOCR models are loaded lazily on first scan (memory-safe)
+    init_paddle_ocr()
 
     def process_paddle_structure(image_path):
         nonlocal all_extracted_text_lines, full_raw_text, html_blocks
