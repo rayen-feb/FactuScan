@@ -619,6 +619,58 @@ def extract_with_gemini_multimodal(filepath, mime_type):
         print(f"[CRITICAL GEMINI ERROR]\n{error_msg}")
         return None, None
 
+def extract_with_gemini(text):
+    """Send extracted OCR text to Gemini to refine the invoice fields.
+    Used as a post-processing step when OCR was done by PaddleOCR/OCR.Space.
+    Returns a dict of extracted fields or None on failure."""
+    if not GOOGLE_API_KEY:
+        return None
+    try:
+        model = genai.GenerativeModel('gemini-2.0-flash')
+        prompt = """You are a Tunisian accounting expert. Analyze the following OCR raw text of an invoice.
+Return ONLY valid JSON with these fields:
+{
+  "invoice_number": "string or null",
+  "invoice_date": "DD/MM/YYYY or null",
+  "supplier": "company name or null",
+  "ice": "15-digit number or null",
+  "ht_amount": float or null,
+  "vat_amount": float or null,
+  "total_amount": float or null
+}
+Be precise. If a number uses a comma as decimal separator, use a dot.
+RAW TEXT:
+""" + text[:12000]
+
+        response = model.generate_content(prompt)
+        if not response or not response.candidates:
+            return None
+        if response.prompt_feedback and response.prompt_feedback.block_reason:
+            return None
+
+        t = response.text.strip()
+        clean_json = t.replace('```json', '').replace('```', '').strip()
+        if '{' in clean_json and '}' in clean_json:
+            start = clean_json.find('{')
+            end = clean_json.rfind('}') + 1
+            data = json.loads(clean_json[start:end])
+            for field in ['ht_amount', 'vat_amount', 'total_amount']:
+                val = data.get(field)
+                if isinstance(val, str):
+                    try:
+                        data[field] = float(val.replace(' ', '').replace(',', '.'))
+                    except (ValueError, TypeError):
+                        data[field] = None
+            return data
+        return None
+    except google.api_core.exceptions.ResourceExhausted:
+        print("[GEMINI QUOTA] Quota épuisé (429) during text refinement.")
+        return None
+    except Exception as e:
+        print(f"[GEMINI TEXT ERROR] {e}")
+        return None
+
+
 import requests # Ajouté pour OCR.Space et Z.IA
 
 def extract_with_zai(filepath):
@@ -2387,5 +2439,9 @@ def server_error(error):
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    socketio.run(app, host='0.0.0.0', port=port, debug=False)
+    # allow_unsafe_werkzeug=True: Flask-SocketIO's default dev server is fine for
+    # small single-worker deployments (Render/HuggingFace) and its absence raises
+    # a RuntimeError on Flask-SocketIO >= 5.x. For higher traffic, swap the CMD
+    # in the Dockerfile for: gunicorn -k eventlet -w 1 -b 0.0.0.0:5000 backend.app:app
+    socketio.run(app, host='0.0.0.0', port=port, debug=False, allow_unsafe_werkzeug=True)
 # Fin du fichier - Déploiement Forcé

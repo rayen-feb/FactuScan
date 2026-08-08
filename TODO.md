@@ -16,6 +16,9 @@
 - [x] Create `.env.example` with placeholders for all required variables
 - [x] Update `Dockerfile` + `.dockerignore` for leaner, reliable deploys
 - [x] Lazy-load PaddleOCR models to prevent OOM (status 137) on 512MB hosts
+- [x] Fix Render deploy crash: `socketio.run(..., allow_unsafe_werkzeug=True)`
+      (Flask-SocketIO >= 5.x raises RuntimeError without this flag)
+- [x] Define missing `extract_with_gemini()` helper (was a latent NameError)
 - [ ] ABORT the in-progress interactive rebase: `git rebase --abort`
 - [ ] Scrub `.env` & `backend/.env` from history with `git filter-repo` (see FINAL PUSH guide)
 - [ ] Force-push clean history to GitHub
